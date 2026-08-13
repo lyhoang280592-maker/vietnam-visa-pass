@@ -1,0 +1,256 @@
+<!-- =====================================================
+     EASY TRIP & VISA — 3-Location Map Widget v2
+     Color: Yellow #FFCC00 | Height: 420px
+     Includes address info & contact bar
+     ===================================================== -->
+<style>
+  .etv-map-wrap {
+    font-family: 'Roboto', Arial, sans-serif;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.18);
+    border: 1px solid #ddd;
+  }
+
+  /* ── Header banner ── */
+  .etv-header {
+    background: #1a1a1a;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .etv-header-icon {
+    width: 30px; height: 30px;
+    background: #FFCC00;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .etv-header-text strong {
+    display: block;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .etv-header-text small {
+    color: rgba(255,255,255,0.55);
+    font-size: 10px;
+  }
+
+  /* ── Tabs ── */
+  .etv-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: #111;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .etv-tab {
+    padding: 7px 4px;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    transition: all 0.25s;
+    border-bottom: 3px solid transparent;
+    line-height: 1.3;
+  }
+  .etv-tab .etv-icon { display: none; }
+  .etv-tab small { display: block; font-size: 9px; font-weight: 400; opacity: 0.65; margin-top: 1px; }
+  .etv-tab:hover { color: white; background: rgba(255,204,0,0.06); }
+  .etv-tab.active {
+    color: #FFCC00;
+    border-bottom-color: #FFCC00;
+    background: rgba(255,204,0,0.08);
+  }
+
+  /* ── Map iframe — responsive ratio ── */
+  .etv-map-ratio {
+    position: relative;
+    width: 100%;
+    padding-bottom: 45%; /* shorter height */
+    background: #f0f0f0;
+  }
+  .etv-map-frame {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: none;
+  }
+
+  /* ── Info bar below map ── */
+  .etv-info-bar {
+    background: #1a1a1a;
+    padding: 8px 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    border-top: 2px solid #FFCC00;
+  }
+  .etv-info-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .etv-info-name {
+    color: #FFCC00;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .etv-info-addr {
+    color: rgba(255,255,255,0.7);
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .etv-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #FFCC00;
+    color: #1a1a1a !important;
+    text-decoration: none !important;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .etv-open-btn:hover { background: #e6b800; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,204,0,0.4); }
+
+  /* ── Contact row ── */
+  .etv-contacts {
+    background: #111;
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .etv-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(255,255,255,0.6);
+    font-size: 12.5px;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .etv-contact-item:hover { color: #FFCC00; }
+  .etv-contact-item span { font-size: 15px; }
+
+  @media (max-width: 600px) {
+    .etv-map-frame { height: 280px; }
+    .etv-tab { font-size: 11px; padding: 10px 5px; }
+    .etv-info-bar { grid-template-columns: 1fr; }
+    .etv-contacts { gap: 10px; }
+  }
+</style>
+
+<div class="etv-map-wrap">
+
+  <!-- HEADER -->
+  <div class="etv-header">
+    <div class="etv-header-icon">📍</div>
+    <div class="etv-header-text">
+      <strong>Easy Trip &amp; Visa — Find Us</strong>
+      <small>3 locations in Nha Trang · Click to switch location</small>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="etv-tabs">
+    <button class="etv-tab active" onclick="etvSwitch(this,
+      'https://maps.google.com/maps?q=21+Phan+Vinh,+Nha+Trang,+Vietnam&t=&z=17&ie=UTF8&iwloc=&output=embed',
+      '🏢 Main Office',
+      '21 Phan Vinh St, Vinh Nguyen Ward, Nha Trang, Khanh Hoa',
+      'https://maps.app.goo.gl/LZNTquqEqLaRbSwZ9'
+    )">
+      <span class="etv-icon">🏢</span>
+      Main Office
+      <small>21 Phan Vinh</small>
+    </button>
+
+    <button class="etv-tab" onclick="etvSwitch(this,
+      'https://maps.google.com/maps?q=12.258617,109.1962066&t=&z=17&ie=UTF8&iwloc=&output=embed',
+      '🚏 Pick-up Point 1',
+      '755W+CFW, Nha Trang, Khanh Hoa, Vietnam',
+      'https://maps.google.com/maps?q=12.258617,109.1962066'
+    )">
+      <span class="etv-icon">🚏</span>
+      Pick-up Point 1
+      <small>755W+CFW</small>
+    </button>
+
+    <button class="etv-tab" onclick="etvSwitch(this,
+      'https://maps.google.com/maps?q=40+Hon+Chong,+Nha+Trang,+Vietnam&t=&z=17&ie=UTF8&iwloc=&output=embed',
+      '🚌 Visa Run Pick-up',
+      '40 Hon Chong St, North Nha Trang, Khanh Hoa, Vietnam',
+      'https://maps.google.com/maps?q=40+Hon+Chong,+Nha+Trang'
+    )">
+      <span class="etv-icon">🚌</span>
+      Visa Run Pick-up
+      <small>40 Hon Chong</small>
+    </button>
+  </div>
+
+  <!-- MAP -->
+  <div class="etv-map-ratio">
+    <iframe
+      id="etv-map-iframe"
+      class="etv-map-frame"
+      src="https://maps.google.com/maps?q=21+Phan+Vinh,+Nha+Trang,+Vietnam&t=&z=17&ie=UTF8&iwloc=&output=embed"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <!-- INFO BAR -->
+  <div class="etv-info-bar">
+    <div class="etv-info-details">
+      <div class="etv-info-name" id="etv-name">🏢 Main Office</div>
+      <div class="etv-info-addr" id="etv-address">21 Phan Vinh St, Vinh Nguyen Ward, Nha Trang, Khanh Hoa</div>
+    </div>
+    <a id="etv-maplink" href="https://maps.app.goo.gl/LZNTquqEqLaRbSwZ9" target="_blank" class="etv-open-btn">
+      📍 Open Maps
+    </a>
+  </div>
+
+  <!-- CONTACT ROW -->
+  <div class="etv-contacts">
+    <a href="https://wa.me/84868462071" target="_blank" class="etv-contact-item">
+      <span>💬</span> WhatsApp: +84 868 462 071
+    </a>
+    <a href="https://t.me/easytripvisa" target="_blank" class="etv-contact-item">
+      <span>✈</span> Telegram: @easytripvisa
+    </a>
+    <span class="etv-contact-item">
+      <span>🕐</span> Support 24/7 — Office: 8:00 AM – 8:00 PM
+    </span>
+  </div>
+
+</div>
+
+<script>
+function etvSwitch(btn, src, name, addr, link) {
+  document.querySelectorAll('.etv-tab').forEach(function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('etv-map-iframe').src = src;
+  document.getElementById('etv-name').textContent = name;
+  document.getElementById('etv-address').textContent = addr;
+  document.getElementById('etv-maplink').href = link;
+}
+</script>
