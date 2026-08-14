@@ -1346,11 +1346,307 @@ const i18n = {
   }
 };
 
+/* ============================================================
+   GLOBAL STATE & ROUTE DEFINITIONS
+   ============================================================ */
 let currentLang = 'en';
 let selectedCity = 'nhatrang';
 let selectedRouteIndex = 0;
 
-// Expose globally so inline onclick="switchLanguage('ru')" works 100%
+const cityRoutes = {
+  danang: [
+    {
+      id: 'dn_bus',
+      nameVi: 'Sleeper Bus Đà Nẵng ⇄ Lao Bảo (Lào) Khứ hồi',
+      nameEn: 'Da Nang ⇄ Lao Bao (Laos) Sleeper Bus Round-trip',
+      nameRu: 'Дананг ⇄ Лаобао (Лаос) Слипбас туда-обратно',
+      nameAr: 'حافلة النوم: دانانغ ⇄ لاو باو (لاوس) ذهاب وإياب',
+      nameKr: '다낭 ⇄ 라오바오(라오스) 슬리핑 버스 왕복',
+      price: 850000,
+      descEn: '01:45 AM (Tue, Sat) · 2-meter comfortable bed, privacy curtains, USB charging',
+      descRu: '01:45 утра (Вт, Сб) · Кровать 2м, шторки приватности, розетки USB',
+      descAr: '01:45 صباحاً (الثلاثاء والسبت) · سرير مريح 2 متر، ستائر خصوصية، شواحن USB',
+      descKr: '화/토 01:45 출발 · 2m 풀플랫 침대, 프라이빗 커튼, USB 충전',
+      descVi: '01:45 Sáng (T3, T7) · Giường nằm 2m, rèm riêng tư, sạc USB'
+    },
+    {
+      id: 'dn_vip_seat',
+      nameVi: 'VIP Car Riêng 7 Chỗ (Ghế lẻ) Đà Nẵng ⇄ Lao Bảo',
+      nameEn: 'VIP Car Shared Seat (Kia Carnival/Fortuner) to Lao Bao',
+      nameRu: 'VIP Car отдельное место (Карнивал/Фортунер) в Лаос',
+      nameAr: 'مقعد في سيارة VIP مشتركة (كارنيفال/فورتشنر) إلى لاو باو',
+      nameKr: 'VIP 카 개별 좌석 (카니발/포튜너) 라오스행',
+      price: 850000,
+      descEn: '03:00 AM Daily · Hotel / Villa door-to-door pickup in Da Nang & Hoi An',
+      descRu: '03:00 утра ежедневно · Подача прямо к отелю / вилле в Дананге и Хойане',
+      descAr: '03:00 صباحاً يومياً · نقل مباشر من باب الفندق في دانانغ وهوي آن',
+      descKr: '매일 03:00 출발 · 다낭 & 호이안 호텔/빌라 도어투도어 픽업',
+      descVi: '03:00 Sáng Hàng ngày · Đón tận cửa khách sạn/villa tại Đà Nẵng & Hội An'
+    },
+    {
+      id: 'dn_vip_full',
+      nameVi: 'Bao Trọn Xe VIP Car Riêng 7 Chỗ (Toàn bộ xe)',
+      nameEn: 'Private 7-Seat VIP Car Charter (Exclusive Entire Car)',
+      nameRu: 'Аренда всего VIP Car 7 мест (Индивидуально)',
+      nameAr: 'استئجار سيارة VIP خاصة 7 مقاعد بالكامل',
+      nameKr: 'VIP 7인승 전용 차량 단독 렌탈 (전체 대절)',
+      price: 3800000,
+      descEn: 'Custom departure time · Up to 5-6 passengers',
+      descRu: 'Гибкое время отправления · До 5-6 пассажиров',
+      descAr: 'توقيت انطلاق مخصص حسب رغبتك · يتسع لـ 5-6 ركاب',
+      descKr: '원하는 시간 맞춤 출발 · 최대 5-6인 탑승',
+      descVi: 'Khởi hành giờ tự chọn · Tối đa 5-6 khách'
+    },
+    {
+      id: 'dn_combo_ultra',
+      nameVi: 'Combo Trọn Gói: Bus + E-Visa Ultra Fast 3-4h',
+      nameEn: 'All-Inclusive Combo: Sleeper Bus + 90-Day Ultra Fast E-Visa',
+      nameRu: 'Комбо пакет: Слипбас + Срочная E-Visa 3-4ч',
+      nameAr: 'باقة شاملة: حافلة النوم + تأشيرة إلكترونية فائقة السرعة 3-4 ساعات',
+      nameKr: '올인원 콤보: 슬리핑 버스 + 3-4시간 초고속 E-비자',
+      price: 3900000,
+      descEn: 'Includes round-trip transport + approved 90-day visa at border',
+      descRu: 'Включает проезд туда-обратно + готовую визу 90 дней на границе',
+      descAr: 'يشمل النقل ذهاباً وإياباً + تأشيرة 90 يوماً جاهزة على الحدود',
+      descKr: '왕복 교통비 + 국경 도착 즉시 90일 E-비자 발급 포함',
+      descVi: 'Bao gồm vé xe khứ hồi + E-Visa 90 ngày có sẵn tại cửa khẩu'
+    }
+  ],
+  nhatrang: [
+    {
+      id: 'nt_bus_cambodia',
+      nameVi: 'Sleeper Bus Nha Trang ⇄ Mộc Bài (Campuchia)',
+      nameEn: 'Nha Trang ⇄ Moc Bai (Cambodia Border) Sleeper Bus',
+      nameRu: 'Нячанг ⇄ Мокбай (Граница Камбоджи) Слипбас',
+      nameAr: 'حافلة النوم: نها ترانج ⇄ موك باي (حدود كمبوديا)',
+      nameKr: '나트랑 ⇄ 목바이 (캄보디아 국경) 슬리핑 버스',
+      price: 1400000,
+      descEn: '09:30 PM (Tue, Thu, Sun) · Pickup at 40 Hon Chong, Wi-Fi 19002679',
+      descRu: '21:30 (Вт, Чт, Вс) · Посадка: 40 Hon Chong, Wi-Fi 19002679',
+      descAr: '09:30 مساءً (الثلاثاء، الخميس، الأحد) · الانطلاق من 40 هون تشونغ',
+      descKr: '화/목/일 21:30 출발 · 40 Hon Chong 탑승',
+      descVi: '21:30 Tối (T3, T5, CN) · Đón tại 40 Hòn Chồng, WiFi 19002679'
+    },
+    {
+      id: 'nt_bus_laos',
+      nameVi: 'Sleeper Bus Nha Trang ⇄ Bờ Y (Lào)',
+      nameEn: 'Nha Trang ⇄ Bo Y (Laos Border) Sleeper Bus',
+      nameRu: 'Нячанг ⇄ Бо-И (Граница Лаоса) Слипбас',
+      nameAr: 'حافلة النوم: نها ترانج ⇄ بو ي (حدود لاوس)',
+      nameKr: '나트랑 ⇄ 보이 (라오스 국경) 슬리핑 버스',
+      price: 1400000,
+      descEn: '09:15 & 09:30 PM Daily · Pickup at No. 4 Tran Phu & 40 Hon Chong',
+      descRu: '21:15 и 21:30 Ежедневно · Посадка: No. 4 Tran Phu и 40 Hon Chong',
+      descAr: '09:15 و 09:30 مساءً يومياً · الانطلاق من شارع تران فو وهون تشونغ',
+      descKr: '매일 21:15 & 21:30 출발 · No. 4 Tran Phu 및 40 Hon Chong 탑승',
+      descVi: '21:15 & 21:30 Tối Hàng Ngày · Đón tại Số 4 Trần Phú & 40 Hòn Chồng'
+    },
+    {
+      id: 'nt_combo_evisa',
+      nameVi: 'Combo Trọn Gói Nha Trang: Bus + E-Visa 90 Ngày',
+      nameEn: 'Nha Trang Combo: Sleeper Bus + 90-Day E-Visa Included',
+      nameRu: 'Нячанг Комбо: Слипбас + E-Visa 90 дней под ключ',
+      nameAr: 'باقة نها ترانج الشاملة: حافلة النوم + تأشيرة 90 يوماً',
+      nameKr: '나트랑 콤보: 슬리핑 버스 + 90일 E-비자 포함',
+      price: 4000000,
+      descEn: 'Full A-Z hassle-free service with guaranteed visa issuance',
+      descRu: 'Полный сервис под ключ А-Я с гарантией готовности визы',
+      descAr: 'خدمة متكاملة من الألف إلى الياء مع ضمان إصدار التأشيرة',
+      descKr: 'A부터 Z까지 올인원 대행, 추가 비용 없는 안심 패키지',
+      descVi: 'Hành trình trọn gói A-Z, không phát sinh chi phí'
+    },
+    {
+      id: 'nt_taxi',
+      nameVi: 'Airport Taxi Cam Ranh ⇄ Nha Trang Trung Tâm',
+      nameEn: 'Cam Ranh Airport ⇄ Nha Trang City Fixed Taxi',
+      nameRu: 'Такси Аэропорт Камрань ⇄ Нячанг фиксированная цена',
+      nameAr: 'تاكسي مطار كام رانه ⇄ وسط مدينة نها ترانج بسعر ثابت',
+      nameKr: '깜란 공항 ⇄ 나트랑 시내 정찰제 택시',
+      price: 340000,
+      descEn: 'New Mitsubishi Xpander with meet-and-greet name board',
+      descRu: 'Новый Mitsubishi Xpander с именной табличкой в зале прилета',
+      descAr: 'سيارة ميتسوبيشي إكسباندر حديثة مع لوحة استقبال بالاسم',
+      descKr: '미쓰비시 신형 차량, 공항 입국장 네임보드 픽업',
+      descVi: 'Xe Mitsubishi Xpander mới, đón biển tên tại sân bay'
+    }
+  ],
+  hanoi: [
+    {
+      id: 'hn_bus_huunghi',
+      nameVi: 'VIP Limousine Hà Nội ⇄ Cửa Khẩu Quốc Tế Hữu Nghị (TQ)',
+      nameEn: 'VIP Limousine: Hanoi ⇄ Huu Nghi International Border Gate',
+      nameRu: 'VIP Лимузин: Ханой ⇄ Хыу Нги (Международный КПП)',
+      nameAr: 'ليموزين VIP: هانوي ⇄ منفذ هوو نغي الدولي (الصين)',
+      nameKr: 'VIP 리무진: 하노이 ⇄ 후응이 국제 국경 비자런',
+      price: 1200000,
+      descEn: '09:00 AM Departure · Same-day return around 05:30 PM with approved E-Visa',
+      descRu: '09:00 утра выезд · Возвращение в 17:30 с готовой E-Visa',
+      descAr: '09:00 صباحاً انطلاق · العودة بنفس اليوم حوالي 05:30 مساءً مع التأشيرة',
+      descKr: '09:00 출발 · 당일 17:30 E-비자 발급 후 복귀',
+      descVi: '09:00 Sáng đón tại Văn phòng VIP Limousine · 17:30 nhận E-Visa tái nhập cảnh'
+    },
+    {
+      id: 'hn_fasttrack',
+      nameVi: 'VIP Fast Track Sân Bay Quốc Tế Nội Bài (HAN)',
+      nameEn: 'VIP Fast Track at Hanoi Noi Bai Airport (HAN)',
+      nameRu: 'VIP Fast Track в Аэропорту Нойбай Ханой (HAN)',
+      nameAr: 'المسار السريع VIP في مطار نوي باي الدولي بهانوي (HAN)',
+      nameKr: '하노이 노이바이 국제공항 VIP 패스트트랙',
+      price: 1200000,
+      descEn: 'Skip all lines, priority lane clearance in 5-10 minutes',
+      descRu: 'Без очередей, проход по приоритетному коридору за 5-10 минут',
+      descAr: 'تجاوز جميع الطوابير، ممر أولوي خاص خلال 5-10 دقائق',
+      descKr: '공항 대기줄 패스, 전용 라인 5~10분 초고속 통과',
+      descVi: 'Bỏ qua hàng chờ, đón tại cửa máy bay, làm thủ tục 5-10 phút'
+    }
+  ],
+  hcm: [
+    {
+      id: 'hcm_bus_mocbai',
+      nameVi: 'Limousine / Bus TP.HCM ⇄ Mộc Bài (Campuchia)',
+      nameEn: 'HCMC ⇄ Moc Bai (Cambodia) Limousine / Bus',
+      nameRu: 'Хошимин (Сайгон) ⇄ Мокбай (Камбоджа) Лимузин',
+      nameAr: 'ليموزين / حافلة: مدينة هو تشي منه ⇄ موك باي (كمبوديا)',
+      nameKr: '호치민 ⇄ 목바이 (캄보디아) 리무진 / 버스',
+      price: 900000,
+      descEn: 'Daily departure at 07:00 AM, same-day return by 03:00 PM',
+      descRu: 'Ежедневный выезд в 07:00 утра, возвращение в 15:00',
+      descAr: 'انطلاق يومي الساعة 07:00 صباحاً والعودة بنفس اليوم 03:00 عصراً',
+      descKr: '매일 07:00 출발, 당일 15:00 복귀',
+      descVi: 'Khởi hành hàng ngày lúc 07:00 sáng, về trong ngày 15:00'
+    },
+    {
+      id: 'hcm_fasttrack',
+      nameVi: 'VIP Fast Track Sân Bay Tân Sơn Nhất (SGN)',
+      nameEn: 'VIP Fast Track at HCMC Tan Son Nhat Airport (SGN)',
+      nameRu: 'VIP Fast Track в Аэропорту Таншоннят Хошимин (SGN)',
+      nameAr: 'المسار السريع VIP في مطار تان سون نهات بهوشي منه (SGN)',
+      nameKr: '호치민 탄손누트 국제공항 VIP 패스트트랙',
+      price: 1200000,
+      descEn: 'VIP personal assistant, diplomatic / express lane 5-10 minutes',
+      descRu: 'Персональный ассистент, дипломатический коридор за 5-10 минут',
+      descAr: 'مساعد شخصي VIP، عبور فوري عبر المسار السريع خلال 5-10 دقائق',
+      descKr: 'VIP 전담 직원 영접, 전용 출입국 레인 5~10분 통과',
+      descVi: 'Đón ưu tiên VIP, qua cổng an ninh riêng 5-10 phút'
+    }
+  ]
+};
+
+const evisaPrices = {
+  none: 0,
+  std_7d: 1200000,
+  urg_2d: 2600000,
+  urg_1d: 2850000,
+  ultra_4h: 3100000,
+  super_1h: 4600000
+};
+
+const MULTI_ENTRY_ADDON = 650000;
+
+/* ============================================================
+   GLOBAL FUNCTIONS (CALCULATOR, ROUTE RENDERING & LANGUAGE)
+   ============================================================ */
+
+function getRouteName(route, lang) {
+  if (!route) return '';
+  if (lang === 'vi') return route.nameVi || route.nameEn;
+  if (lang === 'ru') return route.nameRu || route.nameEn;
+  if (lang === 'ar') return route.nameAr || route.nameEn;
+  if (lang === 'kr') return route.nameKr || route.nameEn;
+  return route.nameEn;
+}
+
+function getRouteDesc(route, lang) {
+  if (!route) return '';
+  if (lang === 'vi') return route.descVi || route.descEn;
+  if (lang === 'ru') return route.descRu || route.descEn;
+  if (lang === 'ar') return route.descAr || route.descEn;
+  if (lang === 'kr') return route.descKr || route.descEn;
+  return route.descEn;
+}
+
+window.renderRouteOptions = function(city) {
+  const container = document.getElementById('route-options-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const routes = cityRoutes[city] || [];
+  if (selectedRouteIndex >= routes.length) {
+    selectedRouteIndex = 0;
+  }
+
+  routes.forEach(function (route, index) {
+    const card = document.createElement('div');
+    card.className = 'route-option-card' + (index === selectedRouteIndex ? ' active' : '');
+    card.setAttribute('data-idx', index);
+
+    const nameText = getRouteName(route, currentLang);
+    const descText = getRouteDesc(route, currentLang);
+
+    card.innerHTML = `
+      <div class="roc-left">
+        <span class="roc-radio"></span>
+        <div>
+          <div class="roc-name">${nameText}</div>
+          <div class="roc-desc">${descText}</div>
+        </div>
+      </div>
+      <div class="roc-price">${route.price.toLocaleString('vi-VN')} ₫</div>
+    `;
+
+    card.addEventListener('click', function () {
+      selectedRouteIndex = index;
+      document.querySelectorAll('.route-option-card').forEach(function (c) {
+        c.classList.remove('active');
+      });
+      card.classList.add('active');
+      window.calculateTotal();
+    });
+
+    container.appendChild(card);
+  });
+};
+
+window.calculateTotal = function() {
+  const routes = cityRoutes[selectedCity] || [];
+  const route = routes[selectedRouteIndex] || routes[0];
+  const routePrice = route ? route.price : 0;
+
+  const evisaSelect = document.getElementById('calc-evisa-speed');
+  const multiCheck = document.getElementById('calc-multi-entry');
+
+  const evisaKey = evisaSelect ? evisaSelect.value : 'none';
+  const evisaPrice = evisaPrices[evisaKey] || 0;
+  const isMulti = multiCheck ? multiCheck.checked : false;
+  const multiPrice = (isMulti && evisaKey !== 'none') ? MULTI_ENTRY_ADDON : 0;
+
+  const total = routePrice + evisaPrice + multiPrice;
+
+  const totalDisplay = document.getElementById('calc-total-display');
+  const breakdownDisplay = document.getElementById('calc-breakdown-display');
+
+  if (totalDisplay) {
+    totalDisplay.textContent = total.toLocaleString('vi-VN') + ' ₫';
+  }
+
+  if (breakdownDisplay && route) {
+    const rName = getRouteName(route, currentLang);
+    let parts = [rName];
+    if (evisaPrice > 0 && evisaSelect) {
+      const optText = evisaSelect.options[evisaSelect.selectedIndex].text;
+      parts.push(optText);
+    }
+    if (multiPrice > 0) {
+      const multiLabel = currentLang === 'vi' ? 'Nhiều lần nhập cảnh (+650k)' :
+                         currentLang === 'ru' ? 'Многократный въезд (+650k)' :
+                         currentLang === 'ar' ? 'دخول متعدد (+650k)' :
+                         currentLang === 'kr' ? '복수 입국 (+650k)' : 'Multiple Entry (+650k)';
+      parts.push(multiLabel);
+    }
+    breakdownDisplay.textContent = parts.join(' + ');
+  }
+};
+
 window.switchLanguage = function(lang) {
   if (!i18n[lang]) lang = 'en';
   currentLang = lang;
@@ -1380,321 +1676,193 @@ window.switchLanguage = function(lang) {
     btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
   });
 
-  try {
-    if (typeof renderRouteOptions === 'function') {
-      renderRouteOptions(selectedCity);
-    }
-  } catch(err) {
-    console.error('renderRouteOptions error:', err);
+  // Re-render routes with updated language
+  if (typeof window.renderRouteOptions === 'function') {
+    window.renderRouteOptions(selectedCity);
   }
 
-  try {
-    if (typeof calculateTotal === 'function') {
-      calculateTotal();
-    }
-  } catch(err) {
-    console.error('calculateTotal error:', err);
+  // Recalculate breakdown with updated language
+  if (typeof window.calculateTotal === 'function') {
+    window.calculateTotal();
   }
 };
 
 window.applyLanguage = window.switchLanguage;
 
-document.addEventListener('DOMContentLoaded', function () {
+/* ============================================================
+   MODAL, ACCORDION & BOOKING HANDLERS
+   ============================================================ */
 
-  const cityRoutes = {
-    danang: [
-      {
-        id: 'dn_bus',
-        nameVi: 'Sleeper Bus Đà Nẵng ⇄ Lao Bảo (Lào) Khứ hồi',
-        nameEn: 'Da Nang ⇄ Lao Bao (Laos) Sleeper Bus Round-trip',
-        nameRu: 'Дананг ⇄ Лаобао (Лаос) Слипбас туда-обратно',
-        nameAr: 'حافلة النوم: دانانغ ⇄ لاو باو (لاوس) ذهاب وإياب',
-        nameKr: '다낭 ⇄ 라오바오(라오스) 슬리핑 버스 왕복',
-        price: 850000,
-        descEn: '01:45 AM (Tue, Sat) · 2-meter comfortable bed, privacy curtains, USB charging',
-        descRu: '01:45 утра (Вт, Сб) · Кровать 2м, шторки приватности, розетки USB',
-        descAr: '01:45 صباحاً (الثلاثاء والسبت) · سرير مريح 2 متر، ستائر خصوصية، شواحن USB',
-        descKr: '화/토 01:45 출발 · 2m 풀플랫 침대, 프라이빗 커튼, USB 충전',
-        descVi: '01:45 Sáng (T3, T7) · Giường nằm 2m, rèm riêng tư, sạc USB'
-      },
-      {
-        id: 'dn_vip_seat',
-        nameVi: 'VIP Car Riêng 7 Chỗ (Ghế lẻ) Đà Nẵng ⇄ Lao Bảo',
-        nameEn: 'VIP Car Shared Seat (Kia Carnival/Fortuner) to Lao Bao',
-        nameRu: 'VIP Car отдельное место (Карнивал/Фортунер) в Лаос',
-        nameAr: 'مقعد في سيارة VIP مشتركة (كارنيفال/فورتشنر) إلى لاو باو',
-        nameKr: 'VIP 카 개별 좌석 (카니발/포튜너) 라오스행',
-        price: 850000,
-        descEn: '03:00 AM Daily · Hotel / Villa door-to-door pickup in Da Nang & Hoi An',
-        descRu: '03:00 утра ежедневно · Подача прямо к отелю / вилле в Дананге и Хойане',
-        descAr: '03:00 صباحاً يومياً · نقل مباشر من باب الفندق في دانانغ وهوي آن',
-        descKr: '매일 03:00 출발 · 다낭 & 호이안 호텔/빌라 도어투도어 픽업',
-        descVi: '03:00 Sáng Hàng ngày · Đón tận cửa khách sạn/villa tại Đà Nẵng & Hội An'
-      },
-      {
-        id: 'dn_vip_full',
-        nameVi: 'Bao Trọn Xe VIP Car Riêng 7 Chỗ (Toàn bộ xe)',
-        nameEn: 'Private 7-Seat VIP Car Charter (Exclusive Entire Car)',
-        nameRu: 'Аренда всего VIP Car 7 мест (Индивидуально)',
-        nameAr: 'استئجار سيارة VIP خاصة 7 مقاعد بالكامل',
-        nameKr: 'VIP 7인승 전용 차량 단독 렌탈 (전체 대절)',
-        price: 3800000,
-        descEn: 'Custom departure time · Up to 5-6 passengers',
-        descRu: 'Гибкое время отправления · До 5-6 пассажиров',
-        descAr: 'توقيت انطلاق مخصص حسب رغبتك · يتسع لـ 5-6 ركاب',
-        descKr: '원하는 시간 맞춤 출발 · 최대 5-6인 탑승',
-        descVi: 'Khởi hành giờ tự chọn · Tối đa 5-6 khách'
-      },
-      {
-        id: 'dn_combo_ultra',
-        nameVi: 'Combo Trọn Gói: Bus + E-Visa Ultra Fast 3-4h',
-        nameEn: 'All-Inclusive Combo: Sleeper Bus + 90-Day Ultra Fast E-Visa',
-        nameRu: 'Комбо пакет: Слипбас + Срочная E-Visa 3-4ч',
-        nameAr: 'باقة شاملة: حافلة النوم + تأشيرة إلكترونية فائقة السرعة 3-4 ساعات',
-        nameKr: '올인원 콤보: 슬리핑 버스 + 3-4시간 초고속 E-비자',
-        price: 3900000,
-        descEn: 'Includes round-trip transport + approved 90-day visa at border',
-        descRu: 'Включает проезд туда-обратно + готовую визу 90 дней на границе',
-        descAr: 'يشمل النقل ذهاباً وإياباً + تأشيرة 90 يوماً جاهزة على الحدود',
-        descKr: '왕복 교통비 + 국경 도착 즉시 90일 E-비자 발급 포함',
-        descVi: 'Bao gồm vé xe khứ hồi + E-Visa 90 ngày có sẵn tại cửa khẩu'
-      }
-    ],
-    nhatrang: [
-      {
-        id: 'nt_bus_cambodia',
-        nameVi: 'Sleeper Bus Nha Trang ⇄ Mộc Bài (Campuchia)',
-        nameEn: 'Nha Trang ⇄ Moc Bai (Cambodia Border) Sleeper Bus',
-        nameRu: 'Нячанг ⇄ Мокбай (Граница Камбоджи) Слипбас',
-        nameAr: 'حافلة النوم: نها ترانج ⇄ موك باي (حدود كمبوديا)',
-        nameKr: '나트랑 ⇄ 목바이 (캄보디아 국경) 슬리핑 버스',
-        price: 1400000,
-        descEn: '09:30 PM (Tue, Thu, Sun) · Pickup at 40 Hon Chong, Wi-Fi 19002679',
-        descRu: '21:30 (Вт, Чт, Вс) · Посадка: 40 Hon Chong, Wi-Fi 19002679',
-        descAr: '09:30 مساءً (الثلاثاء، الخميس، الأحد) · الانطلاق من 40 هون تشونغ',
-        descKr: '화/목/일 21:30 출발 · 40 Hon Chong 탑승',
-        descVi: '21:30 Tối (T3, T5, CN) · Đón tại 40 Hòn Chồng, WiFi 19002679'
-      },
-      {
-        id: 'nt_bus_laos',
-        nameVi: 'Sleeper Bus Nha Trang ⇄ Bờ Y (Lào)',
-        nameEn: 'Nha Trang ⇄ Bo Y (Laos Border) Sleeper Bus',
-        nameRu: 'Нячанг ⇄ Бо-И (Граница Лаоса) Слипбас',
-        nameAr: 'حافلة النوم: نها ترانج ⇄ بو ي (حدود لاوس)',
-        nameKr: '나트랑 ⇄ 보이 (라오스 국경) 슬리핑 버스',
-        price: 1400000,
-        descEn: '09:15 & 09:30 PM Daily · Pickup at No. 4 Tran Phu & 40 Hon Chong',
-        descRu: '21:15 и 21:30 Ежедневно · Посадка: No. 4 Tran Phu и 40 Hon Chong',
-        descAr: '09:15 و 09:30 مساءً يومياً · الانطلاق من شارع تران فو وهون تشونغ',
-        descKr: '매일 21:15 & 21:30 출발 · No. 4 Tran Phu 및 40 Hon Chong 탑승',
-        descVi: '21:15 & 21:30 Tối Hàng Ngày · Đón tại Số 4 Trần Phú & 40 Hòn Chồng'
-      },
-      {
-        id: 'nt_combo_evisa',
-        nameVi: 'Combo Trọn Gói Nha Trang: Bus + E-Visa 90 Ngày',
-        nameEn: 'Nha Trang Combo: Sleeper Bus + 90-Day E-Visa Included',
-        nameRu: 'Нячанг Комбо: Слипбас + E-Visa 90 дней под ключ',
-        nameAr: 'باقة نها ترانج الشاملة: حافلة النوم + تأشيرة 90 يوماً',
-        nameKr: '나트랑 콤보: 슬리핑 버스 + 90일 E-비자 포함',
-        price: 4000000,
-        descEn: 'Full A-Z hassle-free service with guaranteed visa issuance',
-        descRu: 'Полный сервис под ключ А-Я с гарантией готовности визы',
-        descAr: 'خدمة متكاملة من الألف إلى الياء مع ضمان إصدار التأشيرة',
-        descKr: 'A부터 Z까지 올인원 대행, 추가 비용 없는 안심 패키지',
-        descVi: 'Hành trình trọn gói A-Z, không phát sinh chi phí'
-      },
-      {
-        id: 'nt_taxi',
-        nameVi: 'Airport Taxi Cam Ranh ⇄ Nha Trang Trung Tâm',
-        nameEn: 'Cam Ranh Airport ⇄ Nha Trang City Fixed Taxi',
-        nameRu: 'Такси Аэропорт Камрань ⇄ Нячанг фиксированная цена',
-        nameAr: 'تاكسي مطار كام رانه ⇄ وسط مدينة نها ترانج بسعر ثابت',
-        nameKr: '깜란 공항 ⇄ 나트랑 시내 정찰제 택시',
-        price: 340000,
-        descEn: 'New Mitsubishi Xpander with meet-and-greet name board',
-        descRu: 'Новый Mitsubishi Xpander с именной табличкой в зале прилета',
-        descAr: 'سيارة ميتسوبيشي إكسباندر حديثة مع لوحة استقبال بالاسم',
-        descKr: '미쓰비시 신형 차량, 공항 입국장 네임보드 픽업',
-        descVi: 'Xe Mitsubishi Xpander mới, đón biển tên tại sân bay'
-      }
-    ],
-    hanoi: [
-      {
-        id: 'hn_bus_huunghi',
-        nameVi: 'VIP Limousine Hà Nội ⇄ Cửa Khẩu Quốc Tế Hữu Nghị (TQ)',
-        nameEn: 'VIP Limousine: Hanoi ⇄ Huu Nghi International Border Gate',
-        nameRu: 'VIP Лимузин: Ханой ⇄ Хыу Нги (Международный КПП)',
-        nameAr: 'ليموزين VIP: هانوي ⇄ منفذ هوو نغي الدولي (الصين)',
-        nameKr: 'VIP 리무진: 하노이 ⇄ 후응이 국제 국경 비자런',
-        price: 1200000,
-        descEn: '09:00 AM Departure · Same-day return around 05:30 PM with approved E-Visa',
-        descRu: '09:00 утра выезд · Возвращение в 17:30 с готовой E-Visa',
-        descAr: '09:00 صباحاً انطلاق · العودة بنفس اليوم حوالي 05:30 مساءً مع التأشيرة',
-        descKr: '09:00 출발 · 당일 17:30 E-비자 발급 후 복귀',
-        descVi: '09:00 Sáng đón tại Văn phòng VIP Limousine · 17:30 nhận E-Visa tái nhập cảnh'
-      },
-      {
-        id: 'hn_fasttrack',
-        nameVi: 'VIP Fast Track Sân Bay Quốc Tế Nội Bài (HAN)',
-        nameEn: 'VIP Fast Track at Hanoi Noi Bai Airport (HAN)',
-        nameRu: 'VIP Fast Track в Аэропорту Нойбай Ханой (HAN)',
-        nameAr: 'المسار السريع VIP في مطار نوي باي الدولي بهانوي (HAN)',
-        nameKr: '하노이 노이바이 국제공항 VIP 패스트트랙',
-        price: 1200000,
-        descEn: 'Skip all lines, priority lane clearance in 5-10 minutes',
-        descRu: 'Без очередей, проход по приоритетному коридору за 5-10 минут',
-        descAr: 'تجاوز جميع الطوابير، ممر أولوي خاص خلال 5-10 دقائق',
-        descKr: '공항 대기줄 패스, 전용 라인 5~10분 초고속 통과',
-        descVi: 'Bỏ qua hàng chờ, đón tại cửa máy bay, làm thủ tục 5-10 phút'
-      }
-    ],
-    hcm: [
-      {
-        id: 'hcm_bus_mocbai',
-        nameVi: 'Limousine / Bus TP.HCM ⇄ Mộc Bài (Campuchia)',
-        nameEn: 'HCMC ⇄ Moc Bai (Cambodia) Limousine / Bus',
-        nameRu: 'Хошимин (Сайгон) ⇄ Мокбай (Камбоджа) Лимузин',
-        nameAr: 'ليموزين / حافلة: مدينة هو تشي منه ⇄ موك باي (كمبوديا)',
-        nameKr: '호치민 ⇄ 목바이 (캄보디아) 리무진 / 버스',
-        price: 900000,
-        descEn: 'Daily departure at 07:00 AM, same-day return by 03:00 PM',
-        descRu: 'Ежедневный выезд в 07:00 утра, возвращение в 15:00',
-        descAr: 'انطلاق يومي الساعة 07:00 صباحاً والعودة بنفس اليوم 03:00 عصراً',
-        descKr: '매일 07:00 출발, 당일 15:00 복귀',
-        descVi: 'Khởi hành hàng ngày lúc 07:00 sáng, về trong ngày 15:00'
-      },
-      {
-        id: 'hcm_fasttrack',
-        nameVi: 'VIP Fast Track Sân Bay Tân Sơn Nhất (SGN)',
-        nameEn: 'VIP Fast Track at HCMC Tan Son Nhat Airport (SGN)',
-        nameRu: 'VIP Fast Track в Аэропорту Таншоннят Хошимин (SGN)',
-        nameAr: 'المسار السريع VIP في مطار تان سون نهات بهوشي منه (SGN)',
-        nameKr: '호치민 탄손누트 국제공항 VIP 패스트트랙',
-        price: 1200000,
-        descEn: 'VIP personal assistant, diplomatic / express lane 5-10 minutes',
-        descRu: 'Персональный ассистент, дипломатический коридор за 5-10 минут',
-        descAr: 'مساعد شخصي VIP، عبور فوري عبر المسار السريع خلال 5-10 دقائق',
-        descKr: 'VIP 전담 직원 영접, 전용 출입국 레인 5~10분 통과',
-        descVi: 'Đón ưu tiên VIP, qua cổng an ninh riêng 5-10 phút'
-      }
-    ]
-  };
+window.toggleFaqItem = function (card) {
+  const wasOpen = card.classList.contains('active');
+  document.querySelectorAll('.faq-card').forEach(function (c) {
+    c.classList.remove('active');
+  });
+  if (!wasOpen) card.classList.add('active');
+};
 
-  const evisaPrices = {
-    none: 0,
-    std_7d: 1200000,
-    urg_2d: 2600000,
-    urg_1d: 2850000,
-    ultra_4h: 3100000,
-    super_1h: 4600000
-  };
+window.toggleTermsArticle = function (el) {
+  el.classList.toggle('active');
+};
 
-  const MULTI_ENTRY_ADDON = 650000;
+window.openTermsModal = function (e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const modal = document.getElementById('terms-modal');
+  if (modal) {
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+};
 
-  let selectedCity = 'nhatrang';
-  let selectedRouteIndex = 0;
+window.closeTermsModal = function (e) {
+  if (e && e.target && e.target.classList &&
+      !e.target.classList.contains('modal-overlay') &&
+      !e.target.classList.contains('modal-close') &&
+      !e.target.classList.contains('btn')) {
+    return;
+  }
+  const modal = document.getElementById('terms-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+};
 
-  function renderRouteOptions(city) {
-    const container = document.getElementById('route-options-container');
-    if (!container) return;
-    container.innerHTML = '';
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    window.closeTermsModal();
+  }
+});
 
-    const routes = cityRoutes[city] || [];
-    routes.forEach(function (route, index) {
-      const card = document.createElement('div');
-      card.className = 'route-option-card' + (index === selectedRouteIndex ? ' active' : '');
-      card.setAttribute('data-idx', index);
+const AIRTABLE_WEBHOOK_URL = "";
 
-      let nameText = route.nameEn;
-      let descText = route.descEn;
-      if (currentLang === 'vi') { nameText = route.nameVi; descText = route.descVi; }
-      else if (currentLang === 'ru') { nameText = route.nameRu; descText = route.descRu; }
-      else if (currentLang === 'ar') { nameText = route.nameAr; descText = route.descAr; }
-      else if (currentLang === 'kr') { nameText = route.nameKr; descText = route.descKr; }
+window.handleMainFormSubmit = function (e) {
+  e.preventDefault();
 
-      card.innerHTML = `
-        <div class="roc-left">
-          <span class="roc-radio"></span>
-          <div>
-            <div class="roc-name">${nameText}</div>
-            <div class="roc-desc">${descText}</div>
-          </div>
-        </div>
-        <div class="roc-price">${route.price.toLocaleString('vi-VN')} ₫</div>
-      `;
+  const name = (document.getElementById('f-name') ? document.getElementById('f-name').value : '').trim();
+  const phone = (document.getElementById('f-phone') ? document.getElementById('f-phone').value : '').trim();
+  const nationality = (document.getElementById('f-nationality') ? document.getElementById('f-nationality').value : '').trim();
+  const city = document.getElementById('f-city') ? document.getElementById('f-city').value : '';
+  const service = document.getElementById('f-service') ? document.getElementById('f-service').value : '';
+  const notes = (document.getElementById('f-notes') ? document.getElementById('f-notes').value : '').trim();
+  const termsAgreed = document.getElementById('f-terms-agree') ? document.getElementById('f-terms-agree').checked : true;
 
-      card.addEventListener('click', function () {
-        selectedRouteIndex = index;
-        document.querySelectorAll('.route-option-card').forEach(function (c) {
-          c.classList.remove('active');
-        });
-        card.classList.add('active');
-        calculateTotal();
-      });
-
-      container.appendChild(card);
-    });
+  if (!termsAgreed) {
+    alert(currentLang === 'vi' ? 'Vui lòng đồng ý với Thỏa thuận dịch vụ trước khi gửi.' :
+          currentLang === 'ru' ? 'Пожалуйста, примите условия предоставления услуг перед отправкой.' :
+          'Please accept the Terms of Service agreement before submitting.');
+    return;
   }
 
+  const leadPayload = {
+    fullName: name,
+    phoneWhatsApp: phone,
+    nationality: nationality,
+    departureCity: city,
+    serviceInterested: service,
+    notes: notes,
+    legalTermsAccepted: true,
+    timestamp: new Date().toISOString(),
+    source: "Vietnam Visa Pass Website Lead"
+  };
+
+  if (AIRTABLE_WEBHOOK_URL) {
+    fetch(AIRTABLE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leadPayload)
+    }).catch(err => console.log('CRM webhook logged:', err));
+  }
+
+  const waMsg = `Hello Vietnam Visa Pass Concierge!
+
+` +
+    `📌 *NEW VIP CONSULTATION REQUEST*
+` +
+    `• *Name:* ${name}
+` +
+    `• *Phone/WhatsApp:* ${phone}
+` +
+    `• *Nationality:* ${nationality}
+` +
+    `• *Current City:* ${city}
+` +
+    `• *Service:* ${service}
+` +
+    `• *Notes:* ${notes || 'N/A'}
+` +
+    `• *Legal Terms:* Agreed & Accepted (Standard VVP Contract)
+
+` +
+    `Please provide instant schedule & fast confirmation. Thank you!`;
+
+  window.open(`https://wa.me/84868462071?text=${encodeURIComponent(waMsg)}`, '_blank');
+};
+
+window.handleCalcBooking = function (channel) {
+  const routes = cityRoutes[selectedCity] || [];
+  const route = routes[selectedRouteIndex] || routes[0];
+  const totalDisplay = document.getElementById('calc-total-display') ? document.getElementById('calc-total-display').textContent : '';
+  const breakdown = document.getElementById('calc-breakdown-display') ? document.getElementById('calc-breakdown-display').textContent : '';
+  const routeTitle = route ? (getRouteName(route, currentLang) || route.nameEn) : 'Visa Run Route';
+
+  const msg = `Hello Vietnam Visa Pass Concierge!
+
+` +
+    `⚡ *EXPRESS VISA RUN BOOKING*
+` +
+    `• *Departure City:* ${selectedCity.toUpperCase()}
+` +
+    `• *Route:* ${routeTitle}
+` +
+    `• *Details:* ${breakdown}
+` +
+    `• *Total Price:* ${totalDisplay}
+` +
+    `• *Legal Terms:* Agreed & Accepted
+
+` +
+    `Please check seat availability and send confirmation. Thank you!`;
+
+  if (channel === 'wa') {
+    window.open(`https://wa.me/84868462071?text=${encodeURIComponent(msg)}`, '_blank');
+  } else if (channel === 'tg') {
+    window.open(`https://t.me/vietnamvisapass?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+};
+
+/* ============================================================
+   DOM CONTENT LOADED INITIALIZER & EVENT LISTENERS
+   ============================================================ */
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── 1. CITY TAB BUTTONS (CALCULATOR) ───────────────────────
   document.querySelectorAll('.city-tab-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.city-tab-btn').forEach(function (b) {
         b.classList.remove('active');
       });
       this.classList.add('active');
-      selectedCity = this.getAttribute('data-city');
+      selectedCity = this.getAttribute('data-city') || 'nhatrang';
       selectedRouteIndex = 0;
-      renderRouteOptions(selectedCity);
-      calculateTotal();
+      window.renderRouteOptions(selectedCity);
+      window.calculateTotal();
     });
   });
 
+  // ── 2. CALCULATOR INPUT LISTENERS ──────────────────────────
   const evisaSelect = document.getElementById('calc-evisa-speed');
   const multiCheck = document.getElementById('calc-multi-entry');
 
-  if (evisaSelect) evisaSelect.addEventListener('change', calculateTotal);
-  if (multiCheck) multiCheck.addEventListener('change', calculateTotal);
-
-  function calculateTotal() {
-    const routes = cityRoutes[selectedCity] || [];
-    const route = routes[selectedRouteIndex] || routes[0];
-    const routePrice = route ? route.price : 0;
-
-    const evisaKey = evisaSelect ? evisaSelect.value : 'none';
-    const evisaPrice = evisaPrices[evisaKey] || 0;
-    const isMulti = multiCheck ? multiCheck.checked : false;
-    const multiPrice = (isMulti && evisaKey !== 'none') ? MULTI_ENTRY_ADDON : 0;
-
-    const total = routePrice + evisaPrice + multiPrice;
-
-    const totalDisplay = document.getElementById('calc-total-display');
-    const breakdownDisplay = document.getElementById('calc-breakdown-display');
-
-    if (totalDisplay) {
-      totalDisplay.textContent = total.toLocaleString('vi-VN') + ' ₫';
-    }
-
-    if (breakdownDisplay && route) {
-      let rName = route.nameEn;
-      if (currentLang === 'vi') rName = route.nameVi;
-      else if (currentLang === 'ru') rName = route.nameRu;
-      else if (currentLang === 'ar') rName = route.nameAr;
-      else if (currentLang === 'kr') rName = route.nameKr;
-
-      let parts = [rName];
-      if (evisaPrice > 0) {
-        let optText = evisaSelect.options[evisaSelect.selectedIndex].text;
-        parts.push(optText);
-      }
-      if (multiPrice > 0) {
-        parts.push(currentLang === 'ru' ? 'Многократный въезд' : (currentLang === 'ar' ? 'دخول متعدد' : (currentLang === 'kr' ? '복수 입국' : (currentLang === 'vi' ? 'Nhiều lần nhập cảnh' : 'Multiple Entry'))));
-      }
-      breakdownDisplay.textContent = parts.join(' + ');
-    }
+  if (evisaSelect) {
+    evisaSelect.addEventListener('change', window.calculateTotal);
+  }
+  if (multiCheck) {
+    multiCheck.addEventListener('change', window.calculateTotal);
   }
 
-
-  // ── 4. BORDER GUIDE TABS ───────────────────────────────────
+  // ── 3. BORDER GUIDE TABS ───────────────────────────────────
   document.querySelectorAll('.guide-tab-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.guide-tab-btn').forEach(function (b) {
@@ -1707,13 +1875,14 @@ document.addEventListener('DOMContentLoaded', function () {
       this.classList.add('active');
       const guideId = this.getAttribute('data-guide');
       const pane = document.getElementById(guideId);
-      if (pane) pane.classList.add('active');
+      if (pane) {
+        pane.classList.add('active');
+      }
     });
   });
 
-
-  // ── 5. TIMETABLE CITY TABS ─────────────────────────────────
-    document.querySelectorAll('.sch-tab-btn, .sched-tab-btn').forEach(function (btn) {
+  // ── 4. TIMETABLE SCHEDULE TABS ─────────────────────────────
+  document.querySelectorAll('.sch-tab-btn, .sched-tab-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const tabId = this.getAttribute('data-tab') || ('sched-' + this.getAttribute('data-sched'));
       document.querySelectorAll('.sch-tab-btn, .sched-tab-btn').forEach(function (b) {
@@ -1724,140 +1893,28 @@ document.addEventListener('DOMContentLoaded', function () {
         p.classList.remove('active');
       });
       const pane = document.getElementById(tabId);
-      if (pane) pane.classList.add('active');
-    });
-  });
-      document.querySelectorAll('.sched-city-pane').forEach(function (p) {
-        p.classList.remove('active');
-      });
-
-      this.classList.add('active');
-      const city = this.getAttribute('data-sched');
-      const pane = document.getElementById('sched-' + city);
-      if (pane) pane.classList.add('active');
+      if (pane) {
+        pane.classList.add('active');
+      }
     });
   });
 
-
-  // ── 6. FAQ ACCORDION ───────────────────────────────────────
-  window.toggleFaqItem = function (card) {
-    const wasOpen = card.classList.contains('active');
-    document.querySelectorAll('.faq-card').forEach(function (c) {
-      c.classList.remove('active');
+  // ── 5. SCROLL TO TOP BUTTON ────────────────────────────────
+  const scrollTopBtn = document.getElementById('scroll-top');
+  if (scrollTopBtn) {
+    window.addEventListener('scroll', function () {
+      if (window.scrollY > 350) {
+        scrollTopBtn.classList.add('visible');
+      } else {
+        scrollTopBtn.classList.remove('visible');
+      }
     });
-    if (!wasOpen) card.classList.add('active');
-  };
+    scrollTopBtn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
-
-  // ── 7. TERMS ACCORDION & MODAL ─────────────────────────────
-  window.toggleTermsArticle = function (el) {
-    el.classList.toggle('active');
-  };
-
-  window.openTermsModal = function (e) {
-    if (e && e.preventDefault) e.preventDefault();
-    const modal = document.getElementById('terms-modal');
-    if (modal) {
-      modal.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-  };
-
-  window.closeTermsModal = function (e) {
-    if (e && e.target && e.target.classList && !e.target.classList.contains('modal-overlay') && !e.target.classList.contains('modal-close') && !e.target.classList.contains('btn')) {
-      return;
-    }
-    const modal = document.getElementById('terms-modal');
-    if (modal) {
-      modal.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-  };
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      window.closeTermsModal();
-    }
-  });
-
-
-  // ── 8. AIRTABLE CRM & WEBHOOK DISPATCHER ───────────────────
-  const AIRTABLE_WEBHOOK_URL = "";
-
-  window.handleMainFormSubmit = function (e) {
-    e.preventDefault();
-
-    const name = document.getElementById('f-name').value.trim();
-    const phone = document.getElementById('f-phone').value.trim();
-    const nationality = document.getElementById('f-nationality').value.trim();
-    const city = document.getElementById('f-city').value;
-    const service = document.getElementById('f-service').value;
-    const notes = document.getElementById('f-notes').value.trim();
-    const termsAgreed = document.getElementById('f-terms-agree').checked;
-
-    if (!termsAgreed) {
-      alert(currentLang === 'vi' ? 'Vui lòng đồng ý với Thỏa thuận dịch vụ trước khi gửi.' : 'Please accept the Terms of Service agreement before submitting.');
-      return;
-    }
-
-    const leadPayload = {
-      fullName: name,
-      phoneWhatsApp: phone,
-      nationality: nationality,
-      departureCity: city,
-      serviceInterested: service,
-      notes: notes,
-      legalTermsAccepted: true,
-      timestamp: new Date().toISOString(),
-      source: "Vietnam Visa Pass Website Lead"
-    };
-
-    if (AIRTABLE_WEBHOOK_URL) {
-      fetch(AIRTABLE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(leadPayload)
-      }).catch(err => console.log('CRM webhook logged:', err));
-    }
-
-    const waMsg = `Hello Vietnam Visa Pass Concierge!\n\n` +
-      `📌 *NEW VIP CONSULTATION REQUEST*\n` +
-      `• *Name:* ${name}\n` +
-      `• *Phone/WhatsApp:* ${phone}\n` +
-      `• *Nationality:* ${nationality}\n` +
-      `• *Current City:* ${city}\n` +
-      `• *Service:* ${service}\n` +
-      `• *Notes:* ${notes || 'N/A'}\n` +
-      `• *Legal Terms:* Agreed & Accepted (Standard VVP Contract)\n\n` +
-      `Please provide instant schedule & fast confirmation. Thank you!`;
-
-    window.open(`https://wa.me/84868462071?text=${encodeURIComponent(waMsg)}`, '_blank');
-  };
-
-  window.handleCalcBooking = function (channel) {
-    const routes = cityRoutes[selectedCity] || [];
-    const route = routes[selectedRouteIndex] || routes[0];
-    const totalDisplay = document.getElementById('calc-total-display').textContent;
-    const breakdown = document.getElementById('calc-breakdown-display').textContent;
-
-    const msg = `Hello Vietnam Visa Pass Concierge!\n\n` +
-      `⚡ *EXPRESS VISA RUN BOOKING*\n` +
-      `• *Departure City:* ${selectedCity.toUpperCase()}\n` +
-      `• *Route:* ${route.nameEn}\n` +
-      `• *Details:* ${breakdown}\n` +
-      `• *Total Price:* ${totalDisplay}\n` +
-      `• *Legal Terms:* Agreed & Accepted\n\n` +
-      `Please check seat availability and send confirmation. Thank you!`;
-
-    if (channel === 'wa') {
-      window.open(`https://wa.me/84868462071?text=${encodeURIComponent(msg)}`, '_blank');
-    } else if (channel === 'tg') {
-      window.open(`https://t.me/vietnamvisapass?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-  };
-
-
-  // ── 9. MOBILE BURGER MENU ──────────────────────────────────
+  // ── 6. MOBILE BURGER MENU ──────────────────────────────────
   const hamburger = document.getElementById('hamburger');
   const navMenu = document.getElementById('nav-menu');
 
@@ -1866,14 +1923,16 @@ document.addEventListener('DOMContentLoaded', function () {
       navMenu.classList.toggle('open');
       const isOpen = navMenu.classList.contains('open');
       const spans = hamburger.querySelectorAll('span');
-      if (isOpen) {
-        spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
-        spans[1].style.opacity = '0';
-        spans[2].style.transform = 'rotate(-45deg) translate(5px, -5px)';
-      } else {
-        spans[0].style.transform = '';
-        spans[1].style.opacity = '';
-        spans[2].style.transform = '';
+      if (spans.length >= 3) {
+        if (isOpen) {
+          spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
+          spans[1].style.opacity = '0';
+          spans[2].style.transform = 'rotate(-45deg) translate(5px, -5px)';
+        } else {
+          spans[0].style.transform = '';
+          spans[1].style.opacity = '';
+          spans[2].style.transform = '';
+        }
       }
     });
 
@@ -1881,15 +1940,16 @@ document.addEventListener('DOMContentLoaded', function () {
       link.addEventListener('click', function () {
         navMenu.classList.remove('open');
         const spans = hamburger.querySelectorAll('span');
-        spans[0].style.transform = '';
-        spans[1].style.opacity = '';
-        spans[2].style.transform = '';
+        if (spans.length >= 3) {
+          spans[0].style.transform = '';
+          spans[1].style.opacity = '';
+          spans[2].style.transform = '';
+        }
       });
     });
   }
 
-
-  // ── 10. NUMBER COUNTER ANIMATION ───────────────────────────
+  // ── 7. NUMBER COUNTER ANIMATION ───────────────────────────
   function initCounters() {
     const counterElements = document.querySelectorAll('.h-stat-num[data-target]');
     counterElements.forEach(function (el) {
@@ -1908,9 +1968,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ── 8. INITIALIZE PAGE STATE ───────────────────────────────
+  let initLang = 'en';
+  try {
+    const saved = localStorage.getItem('vvp_lang');
+    if (saved && i18n[saved]) initLang = saved;
+  } catch(e){}
 
-  // ── 11. INITIALIZATION: DEFAULT ENGLISH (EN) ───────────────
-  applyLanguage('en');
+  window.switchLanguage(initLang);
+  window.renderRouteOptions(selectedCity);
+  window.calculateTotal();
   initCounters();
 
 });
