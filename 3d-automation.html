@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vietnam Visa Pass — 3D Automation Platform & Express Visa Run</title>
+  <meta name="description" content="Next-Generation 3D Holographic Visa Run & Emergency E-Visa Automation Platform for Vietnam Expats and Global Travelers."/>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="shortcut icon" href="favicon.ico"/>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="3d-automation.css"/>
+
+  <!-- Three.js & OrbitControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <!-- Mode Switcher Banner -->
+  <div class="mode-banner">
+    <div class="mode-banner-left">
+      <span class="mode-tag">⚡ 3D EXPERIENCE</span>
+      <span>You are viewing the <strong>3D Automation Preview Edition</strong></span>
+    </div>
+    <a href="index.html" class="mode-switch-btn">← Switch to Classic Mode</a>
+  </div>
+
+  <!-- Main Navbar -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#hero" class="brand-logo">
+        <img src="logo.png" alt="Vietnam Visa Pass Logo"/>
+        <div>
+          <div class="brand-text-title">VIETNAM VISA PASS</div>
+          <div class="brand-text-sub">3D AUTOMATION PLATFORM</div>
+        </div>
+      </a>
+
+      <nav class="nav-links" id="nav-links-3d">
+        <a href="#hero" class="nav-link" data-i18n="nav_services">3D Visualizer</a>
+        <a href="#simulator" class="nav-link">Automation Pipeline</a>
+        <a href="#calculator" class="nav-link" data-i18n="nav_calculator">Estimator</a>
+        <a href="#services" class="nav-link" data-i18n="nav_services">Services</a>
+        <a href="#routes-guide" class="nav-link" data-i18n="nav_guide">Border Guides</a>
+        <a href="#guarantee" class="nav-link" data-i18n="nav_pricing">Guarantee</a>
+      </nav>
+
+      <!-- Language Selector -->
+      <div class="lang-selector">
+        <button type="button" class="lang-btn active" data-lang="en" onclick="switchLanguage3D('en')">🇬🇧 EN</button>
+        <button type="button" class="lang-btn" data-lang="ru" onclick="switchLanguage3D('ru')">🇷🇺 RU</button>
+        <button type="button" class="lang-btn" data-lang="ar" onclick="switchLanguage3D('ar')">🇦🇪 AR</button>
+        <button type="button" class="lang-btn" data-lang="kr" onclick="switchLanguage3D('kr')">🇰🇷 KR</button>
+        <button type="button" class="lang-btn" data-lang="vi" onclick="switchLanguage3D('vi')">🇻🇳 VI</button>
+      </div>
+
+      <a href="https://wa.me/84868462071?text=Hello%20Vietnam%20Visa%20Pass%2C%20I%20want%20to%20book%20a%20Visa%20Run" target="_blank" class="nav-cta">
+        <span>💬</span> <span data-i18n="nav_contact">Book 24/7</span>
+      </a>
+
+      <button class="burger" id="hamburger-3d" aria-label="Toggle Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       1. 3D HERO SECTION (HOLOGRAPHIC MAP + TELEMETRY HUD)
+       ============================================================ -->
+  <section class="hero-3d-section" id="hero">
+    <div class="canvas-3d-container" id="three-canvas-container"></div>
+
+    <div class="container hero-content-layer">
+      <!-- Left Hero Text -->
+      <div class="hero-interactive-left">
+        <div class="badge-tech">
+          <span>●</span> 3D AUTOMATION PLATFORM v9.0
+        </div>
+        <h1 class="hero-title-main">
+          Vietnam Visa Run & <br/>
+          <span class="hero-title-gradient">Autonomous 3D Network</span>
+        </h1>
+        <p class="hero-description" data-i18n="hero_desc">
+          Premier <strong>Sleeper Bus & VIP Limousine Visa Runs</strong> from <strong>Da Nang, Nha Trang, Hanoi</strong> to Laos (Lao Bao, Bo Y), Cambodia (Moc Bai) & China (Huu Nghi). <strong>Emergency E-Visa in 1h–4h</strong>, and <strong>VIP Airport Fast Track $70</strong>.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#calculator" class="btn-3d-primary">
+            <span>⚡</span> <span data-i18n="hero_cta_calc">Calculate & Book Now</span>
+          </a>
+          <a href="#simulator" class="btn-3d-outline">
+            <span>🧭</span> Watch Automation Pipeline
+          </a>
+        </div>
+      </div>
+
+      <!-- Right 3D Telemetry HUD -->
+      <div class="hero-interactive-right">
+        <div class="telemetry-hud-card">
+          <div class="hud-header">
+            <div class="hud-title">
+              <span>📡</span> 3D BORDER TELEMETRY
+            </div>
+            <div class="hud-live-tag">LIVE FEED</div>
+          </div>
+
+          <div class="hud-routes-selector">
+            <button type="button" class="hud-route-btn active" data-route="danang-laos" onclick="focus3DRoute('danang-laos')">
+              📍 Da Nang ⇄ Lao Bao
+            </button>
+            <button type="button" class="hud-route-btn" data-route="nhatrang-boy" onclick="focus3DRoute('nhatrang-boy')">
+              📍 Nha Trang ⇄ Bo Y
+            </button>
+            <button type="button" class="hud-route-btn" data-route="nhatrang-mocbai" onclick="focus3DRoute('nhatrang-mocbai')">
+              📍 Nha Trang ⇄ Moc Bai
+            </button>
+            <button type="button" class="hud-route-btn" data-route="hanoi-huunghi" onclick="focus3DRoute('hanoi-huunghi')">
+              📍 Hanoi ⇄ Huu Nghi
+            </button>
+          </div>
+
+          <div class="hud-telemetry-grid">
+            <div class="hud-stat-box">
+              <div class="hud-stat-label">Transit Distance</div>
+              <div class="hud-stat-val cyan" id="hud-stat-dist">240 km (QL9)</div>
+            </div>
+            <div class="hud-stat-box">
+              <div class="hud-stat-label">Departure Times</div>
+              <div class="hud-stat-val emerald" id="hud-stat-speed">01:45 / 03:00 AM</div>
+            </div>
+            <div class="hud-stat-box">
+              <div class="hud-stat-label">Border Clearance</div>
+              <div class="hud-stat-val gold" id="hud-stat-clear">15 - 20 min</div>
+            </div>
+            <div class="hud-stat-box">
+              <div class="hud-stat-label">E-Visa Guarantee</div>
+              <div class="hud-stat-val emerald">100% On-Time</div>
+            </div>
+          </div>
+
+          <div class="hud-map-hint">
+            <span>💡</span> Click and drag to orbit 3D terrain map in real-time
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2. VISA RUN AUTOMATION SIMULATOR (4-STEP PIPELINE)
+       ============================================================ -->
+  <section class="section-automation" id="simulator">
+    <div class="container">
+      <div class="section-header-center">
+        <div class="section-subtitle">⚡ AUTOMATED LIFECYCLE</div>
+        <h2 class="section-title">4-Step Visa Run Automation Pipeline</h2>
+        <p class="section-desc">
+          Experience our frictionless, fully concierge-guided cross-border transit process from hotel doorstep back home with a refreshed 90-day visa.
+        </p>
+      </div>
+
+      <div class="simulator-card">
+        <!-- Controls Bar -->
+        <div class="sim-controls-bar">
+          <div class="sim-route-tabs">
+            <button type="button" class="sim-route-pill active" data-sim-route="danang" onclick="setSimRoute('danang')">
+              📍 Da Nang ⇄ Laos
+            </button>
+            <button type="button" class="sim-route-pill" data-sim-route="nhatrang" onclick="setSimRoute('nhatrang')">
+              📍 Nha Trang ⇄ Cambodia/Laos
+            </button>
+            <button type="button" class="sim-route-pill" data-sim-route="hanoi" onclick="setSimRoute('hanoi')">
+              📍 Hanoi ⇄ China
+            </button>
+          </div>
+
+          <div class="sim-playback-controls">
+            <button type="button" class="sim-btn" onclick="simPrevStep()">⏮ Prev Step</button>
+            <button type="button" class="sim-btn sim-btn-play" id="sim-btn-play" onclick="toggleSimPlay()">▶ Play Automation</button>
+            <button type="button" class="sim-btn" onclick="simNextStep()">Next Step ⏭</button>
+          </div>
+        </div>
+
+        <!-- 4 Steps Grid -->
+        <div class="pipeline-steps-grid">
+          <div class="pipeline-step-card active" onclick="setSimStep(1)">
+            <div class="step-num-badge">01</div>
+            <div class="step-title">VIP Door Pickup</div>
+            <div class="step-desc">GPS-tracked hotel/villa pickup in Da Nang, Nha Trang or Hanoi with dedicated driver.</div>
+            <div class="step-telemetry-tag">DOOR-TO-DOOR</div>
+          </div>
+
+          <div class="pipeline-step-card" onclick="setSimStep(2)">
+            <div class="step-num-badge">02</div>
+            <div class="step-title">Express Exit Stamping</div>
+            <div class="step-desc">Arrive at border terminal. Concierge guides straight through VIP lane in 15 minutes.</div>
+            <div class="step-telemetry-tag">PRIORITY LANE</div>
+          </div>
+
+          <div class="pipeline-step-card" onclick="setSimStep(3)">
+            <div class="step-num-badge">03</div>
+            <div class="step-title">Neutral Zone Transit</div>
+            <div class="step-desc">Cross international neutral corridor, obtain foreign entry stamp without language barriers.</div>
+            <div class="step-telemetry-tag">CONCIERGE ESCORT</div>
+          </div>
+
+          <div class="pipeline-step-card" onclick="setSimStep(4)">
+            <div class="step-num-badge">04</div>
+            <div class="step-title">90-Day E-Visa Re-entry</div>
+            <div class="step-desc">Enter Vietnam with fresh 90-day validated visa. Comfortable ride back to your hotel.</div>
+            <div class="step-telemetry-tag">MISSION COMPLETE</div>
+          </div>
+        </div>
+
+        <!-- Live Step Status Box -->
+        <div class="sim-live-viewport">
+          <div class="live-stage-status">
+            <div class="live-pulse-radar"></div>
+            <div>
+              <div class="live-stage-title" id="sim-live-title">Step 1: VIP Hotel Door-to-Door Pickup</div>
+              <div class="live-stage-detail" id="sim-live-desc">01:45 AM Sleeper Bus / 03:00 AM VIP Car arrives directly at your Villa/Hotel. Driver confirms booking via WhatsApp GPS coordinates.</div>
+            </div>
+          </div>
+          <div class="hud-stat-val emerald" id="sim-live-status">Passenger boarded safely, Wi-Fi & AC verified.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       3. 3D TILT DYNAMIC CALCULATOR & ESTIMATOR
+       ============================================================ -->
+  <section class="section-calculator" id="calculator">
+    <div class="container">
+      <div class="section-header-center">
+        <div class="section-subtitle">💎 REAL-TIME ESTIMATOR</div>
+        <h2 class="section-title">3D Smart Visa Fee Calculator</h2>
+        <p class="section-desc">
+          Instant transparent pricing with no hidden costs. Select your departure hub and optional e-visa package.
+        </p>
+      </div>
+
+      <div class="calc-tilt-wrapper">
+        <div class="calc-card-3d">
+          <!-- City Selection Pills -->
+          <div class="calc-city-pills">
+            <button type="button" class="calc-city-btn active" data-city="danang">Da Nang</button>
+            <button type="button" class="calc-city-btn" data-city="nhatrang">Nha Trang</button>
+            <button type="button" class="calc-city-btn" data-city="hanoi">Hanoi</button>
+            <button type="button" class="calc-city-btn" data-city="hcm">Ho Chi Minh City</button>
+          </div>
+
+          <!-- Dynamic Route Options Container -->
+          <div class="calc-routes-container" id="calc-routes-container-3d"></div>
+
+          <!-- Addons Grid -->
+          <div class="calc-addons-grid">
+            <div class="calc-select-wrapper">
+              <label class="calc-select-label" data-i18n="calc_lbl_evisa">Emergency 90-Day Vietnam E-Visa Speed:</label>
+              <select id="calc-evisa-speed-3d" class="calc-select-3d">
+                <option value="none" data-i18n="evisa_opt_none">No E-Visa Needed (I already have one) — +0 ₫</option>
+                <option value="std_7d" data-i18n="evisa_opt_std">Standard 7 Working Days Processing — +1,200,000 ₫</option>
+                <option value="urg_2d" data-i18n="evisa_opt_urg2">Urgent 2 Working Days Guarantee — +2,600,000 ₫</option>
+                <option value="urg_1d" data-i18n="evisa_opt_urg1">Emergency 1 Working Day (24h) — +2,850,000 ₫</option>
+                <option value="ultra_4h" data-i18n="evisa_opt_ultra">⚡ Ultra Fast 3 - 4 Hours at Border — +3,100,000 ₫</option>
+                <option value="super_1h" data-i18n="evisa_opt_super">🚀 Super Express 1 Hour Airport/Border — +4,600,000 ₫</option>
+              </select>
+            </div>
+
+            <div class="calc-checkbox-card" onclick="document.getElementById('calc-multi-entry-3d').click()">
+              <input type="checkbox" id="calc-multi-entry-3d" onclick="event.stopPropagation()"/>
+              <div>
+                <strong style="color:#fff;" data-i18n="calc_lbl_multi">Multiple Entry (90 Days)</strong>
+                <div style="font-size:0.8rem; color:var(--text-muted);">Addon +650,000 ₫</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calculation Result HUD -->
+          <div class="calc-result-hud">
+            <div>
+              <div style="font-size:0.8rem; text-transform:uppercase; color:var(--text-dim); font-family:var(--font-mono);" data-i18n="calc_total_lbl">ESTIMATED ALL-INCLUSIVE TOTAL</div>
+              <div class="calc-breakdown-text" id="calc-breakdown-display-3d">Sleeper Bus Da Nang ⇄ Lao Bao</div>
+            </div>
+            <div class="calc-total-amount" id="calc-total-display-3d">850,000 ₫</div>
+          </div>
+
+          <!-- Booking Actions -->
+          <div class="calc-book-buttons">
+            <button type="button" class="btn-book-wa" onclick="handleCalcBooking3D('wa')">
+              <span>📱</span> <span data-i18n="calc_btn_wa">Book via WhatsApp Instant</span>
+            </button>
+            <button type="button" class="btn-book-tg" onclick="handleCalcBooking3D('tg')">
+              <span>✈</span> <span data-i18n="calc_btn_tg">Book via Telegram Concierge</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4. 3D SERVICES SHOWCASE
+       ============================================================ -->
+  <section class="section-services" id="services">
+    <div class="container">
+      <div class="section-header-center">
+        <div class="section-subtitle" data-i18n="services_subbadge">⚡ CORE VIP SERVICES</div>
+        <h2 class="section-title">Speed, Luxury & 5-Star Confidence</h2>
+        <p class="section-desc" data-i18n="services_desc">
+          Comprehensive border visa runs, emergency e-visas, and airport priority fast track designed for global expats and digital nomads.
+        </p>
+      </div>
+
+      <div class="services-3d-grid">
+        <div class="service-card-3d">
+          <div class="service-icon-wrap">🚌</div>
+          <h3 class="service-card-title" data-i18n="sc_title_1">Sleeper Bus & VIP Car</h3>
+          <p class="service-card-desc" data-i18n="sc_desc_1">Smooth round-trip cross-border journey to Lao Bao (Laos), Bo Y (Laos), Moc Bai (Cambodia) and Huu Nghi (China).</p>
+          <ul class="service-features-list">
+            <li><span>✓</span> 2m leather sleeper bed & AC</li>
+            <li><span>✓</span> Direct border guide escort</li>
+          </ul>
+          <a href="#calculator" class="service-btn-action">Calculate Trip →</a>
+        </div>
+
+        <div class="service-card-3d">
+          <div class="service-icon-wrap">⚡</div>
+          <h3 class="service-card-title" data-i18n="sc_title_2">Emergency 90-Day E-Visa</h3>
+          <p class="service-card-desc" data-i18n="sc_desc_2">Super urgent official government visa approval in 1h, 4h, or 24h. 100% money-back guarantee.</p>
+          <ul class="service-features-list">
+            <li><span>✓</span> Fast 1h – 4h turnaround</li>
+            <li><span>✓</span> 100% legal government approval</li>
+          </ul>
+          <a href="#calculator" class="service-btn-action">Get Urgent Visa →</a>
+        </div>
+
+        <div class="service-card-3d">
+          <div class="service-icon-wrap">👑</div>
+          <h3 class="service-card-title" data-i18n="sc_title_3">VIP Airport Fast Track</h3>
+          <p class="service-card-desc" data-i18n="sc_desc_3">Skip the 2-hour long airport immigration lines at Tan Son Nhat (SGN), Noi Bai (HAN), Da Nang (DAD) and Cam Ranh (CXR).</p>
+          <ul class="service-features-list">
+            <li><span>✓</span> Diplomatic priority lane (5-10m)</li>
+            <li><span>✓</span> Personal meet & greet board</li>
+          </ul>
+          <a href="https://wa.me/84868462071?text=Hello%20VVP%2C%20I%20want%20VIP%20Airport%20Fast%20Track" target="_blank" class="service-btn-action">Book Fast Track ($70) →</a>
+        </div>
+
+        <div class="service-card-3d">
+          <div class="service-icon-wrap">🚖</div>
+          <h3 class="service-card-title" data-i18n="sc_title_4">Cam Ranh Airport Taxi</h3>
+          <p class="service-card-desc" data-i18n="sc_desc_4">Fixed-rate private airport transfer between Cam Ranh International Airport (CXR) and Nha Trang City Center.</p>
+          <ul class="service-features-list">
+            <li><span>✓</span> Fixed 340,000 ₫ (All-in)</li>
+            <li><span>✓</span> Modern 7-seat Xpander car</li>
+          </ul>
+          <a href="https://wa.me/84868462071?text=Hello%20VVP%2C%20I%20want%20Cam%20Ranh%20Airport%20Taxi" target="_blank" class="service-btn-action">Reserve Taxi →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5. BORDER GUIDES & CHECKPOINTS
+       ============================================================ -->
+  <section class="section-border-guide" id="routes-guide">
+    <div class="container">
+      <div class="section-header-center">
+        <div class="section-subtitle">📖 STEP-BY-STEP GUIDES</div>
+        <h2 class="section-title">International Border Gate Profiles</h2>
+        <p class="section-desc">
+          Detailed breakdown of the four major international land border gates for Vietnam visa runs.
+        </p>
+      </div>
+
+      <div class="guide-tabs-pill">
+        <button type="button" class="guide-tab-3d active" data-guide="guide-3d-danang">📍 Da Nang ⇄ Lao Bao (Laos)</button>
+        <button type="button" class="guide-tab-3d" data-guide="guide-3d-nhatrang-cam">📍 Nha Trang ⇄ Moc Bai (Cambodia)</button>
+        <button type="button" class="guide-tab-3d" data-guide="guide-3d-nhatrang-laos">📍 Nha Trang ⇄ Bo Y (Laos)</button>
+        <button type="button" class="guide-tab-3d" data-guide="guide-3d-hanoi">📍 Hanoi ⇄ Huu Nghi (China)</button>
+      </div>
+
+      <!-- Da Nang Lao Bao Pane -->
+      <div class="guide-pane-3d active" id="guide-3d-danang">
+        <div class="guide-info-card">
+          <h3 class="guide-info-title">Da Nang ⇄ Lao Bao International Border</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            The most popular and convenient visa run route for expats residing in Da Nang and Hoi An. Connected via National Highway QL9 with scenic mountain views and fast clearance.
+          </p>
+          <div class="guide-stats-grid">
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Total Distance</div>
+              <div class="guide-stat-val">240 km Each Way</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Departure Times</div>
+              <div class="guide-stat-val">01:45 AM & 03:00 AM</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Border Processing</div>
+              <div class="guide-stat-val">15 - 20 Minutes</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Vehicles</div>
+              <div class="guide-stat-val">Sleeper Bus / VIP Car</div>
+            </div>
+          </div>
+          <a href="#calculator" class="btn-3d-primary">Book Da Nang Run →</a>
+        </div>
+        <div class="guide-visual-card">
+          <img src="vve_lao_bao_border.png" alt="Lao Bao International Border Station"/>
+        </div>
+      </div>
+
+      <!-- Nha Trang Moc Bai Pane -->
+      <div class="guide-pane-3d" id="guide-3d-nhatrang-cam">
+        <div class="guide-info-card">
+          <h3 class="guide-info-title">Nha Trang ⇄ Moc Bai (Cambodia)</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Overnight sleeper bus connecting Nha Trang with Moc Bai border via modern highway network. Departure at 21:30 PM with comfortable 2m sleeper berths.
+          </p>
+          <div class="guide-stats-grid">
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Total Distance</div>
+              <div class="guide-stat-val">380 km</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Schedules</div>
+              <div class="guide-stat-val">Tue, Thu, Sun (21:30)</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Pickup Point</div>
+              <div class="guide-stat-val">40 Hon Chong, NT</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Cambodia E-Visa</div>
+              <div class="guide-stat-val">Available on Arrival</div>
+            </div>
+          </div>
+          <a href="#calculator" class="btn-3d-primary">Book Moc Bai Run →</a>
+        </div>
+        <div class="guide-visual-card">
+          <img src="vve_moc_bai_border.png" alt="Moc Bai International Border Station"/>
+        </div>
+      </div>
+
+      <!-- Nha Trang Bo Y Pane -->
+      <div class="guide-pane-3d" id="guide-3d-nhatrang-laos">
+        <div class="guide-info-card">
+          <h3 class="guide-info-title">Nha Trang ⇄ Bo Y (Laos)</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Highland route to Bo Y border gate in Kon Tum province. Runs daily at 21:15 & 21:30 PM with guaranteed visa processing assistance.
+          </p>
+          <div class="guide-stats-grid">
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Total Distance</div>
+              <div class="guide-stat-val">310 km</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Schedules</div>
+              <div class="guide-stat-val">Daily 21:15 & 21:30</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Pickup Point</div>
+              <div class="guide-stat-val">No. 4 Tran Phu, NT</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Visa Support</div>
+              <div class="guide-stat-val">Full Concierge</div>
+            </div>
+          </div>
+          <a href="#calculator" class="btn-3d-primary">Book Bo Y Run →</a>
+        </div>
+        <div class="guide-visual-card">
+          <img src="vve_bo_y_border.png" alt="Bo Y International Border Station"/>
+        </div>
+      </div>
+
+      <!-- Hanoi Huu Nghi Pane -->
+      <div class="guide-pane-3d" id="guide-3d-hanoi">
+        <div class="guide-info-card">
+          <h3 class="guide-info-title">Hanoi ⇄ Huu Nghi International Gate (China)</h3>
+          <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+            Fast daylight luxury limousine service from Hanoi to Huu Nghi Gate (Lang Son). Departs 09:00 AM, returns same day by 17:30 with approved 90-day visa.
+          </p>
+          <div class="guide-stats-grid">
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Total Distance</div>
+              <div class="guide-stat-val">170 km Highway</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Schedules</div>
+              <div class="guide-stat-val">Daily 09:00 AM</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Vehicles</div>
+              <div class="guide-stat-val">DCar VIP Limousine</div>
+            </div>
+            <div class="guide-stat-item">
+              <div class="guide-stat-label">Return Home</div>
+              <div class="guide-stat-val">17:30 Same Day</div>
+            </div>
+          </div>
+          <a href="#calculator" class="btn-3d-primary">Book Hanoi Run →</a>
+        </div>
+        <div class="guide-visual-card">
+          <img src="vve_border_station.png" alt="Huu Nghi International Border Gate"/>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       6. GUARANTEE & REPUTATION
+       ============================================================ -->
+  <section class="section-guarantee" id="guarantee">
+    <div class="container">
+      <div class="guarantee-grid">
+        <div class="guarantee-box">
+          <div class="guarantee-icon">🛡️</div>
+          <h3 class="guarantee-title">100% Money-Back Guarantee</h3>
+          <p class="guarantee-desc">Full unconditional refund of all service fees and new visa costs in the unlikely event of non-clearance.</p>
+        </div>
+        <div class="guarantee-box">
+          <div class="guarantee-icon">💎</div>
+          <h3 class="guarantee-title">100% Upfront Transparent</h3>
+          <p class="guarantee-desc">Zero hidden fees, zero surprise surcharges at the border. The price calculated is exactly what you pay.</p>
+        </div>
+        <div class="guarantee-box">
+          <div class="guarantee-icon">⚡</div>
+          <h3 class="guarantee-title">1-Hour E-Visa Emergency</h3>
+          <p class="guarantee-desc">Direct governmental channels ensuring rapid issuance for urgent border runs and airport clearances.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating Contact Buttons -->
+  <div class="floating-contact">
+    <a href="https://wa.me/84868462071" target="_blank" class="float-btn float-wa" aria-label="Chat WhatsApp">
+      <span>📱</span> WhatsApp 24/7
+    </a>
+    <a href="https://t.me/vietnamvisapass" target="_blank" class="float-btn float-tg" aria-label="Chat Telegram">
+      <span>✈</span> Telegram
+    </a>
+    <button id="scroll-top-3d" class="float-top" aria-label="Scroll to top">↑</button>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer-3d">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="brand-text-title" style="margin-bottom:12px;">VIETNAM VISA PASS</div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.6; margin-bottom:16px;">
+            Vietnam's premier express visa run concierge and 1-hour emergency e-visa network. Serving expats in Da Nang, Nha Trang, Hanoi, and Ho Chi Minh City.
+          </p>
+          <div style="font-size:0.85rem; color:#34d399; font-weight:700;">
+            📞 Hotline / WhatsApp: +84 868 462 071
+          </div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Visa Run Hubs</div>
+          <ul class="footer-links">
+            <li><a href="#calculator">Da Nang ⇄ Lao Bao</a></li>
+            <li><a href="#calculator">Nha Trang ⇄ Moc Bai</a></li>
+            <li><a href="#calculator">Nha Trang ⇄ Bo Y</a></li>
+            <li><a href="#calculator">Hanoi ⇄ Huu Nghi</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Services</div>
+          <ul class="footer-links">
+            <li><a href="#calculator">Sleeper Bus Visa Run</a></li>
+            <li><a href="#calculator">Emergency E-Visa 1h-4h</a></li>
+            <li><a href="#services">VIP Fast Track ($70)</a></li>
+            <li><a href="#services">Airport Taxi Service</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Headquarters</div>
+          <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.6;">
+            🏢 40 Hon Chong, Nha Trang City<br/>
+            🏢 4 Tran Phu, Nha Trang<br/>
+            🏢 Da Nang & Hanoi Central Hubs<br/>
+            💬 Telegram: @vietnamvisapass
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 Vietnam Visa Pass (VVP). All rights reserved. 3D Automation Engine v9.0.</div>
+        <div>
+          <a href="index.html" style="color:var(--accent-cyan); margin-right:15px;">Classic Web Edition</a>
+          <a href="index.html#terms" style="color:var(--text-dim);">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script -->
+  <script src="3d-automation.js"></script>
+</body>
+</html>
