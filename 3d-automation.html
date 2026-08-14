@@ -28,7 +28,7 @@
   <div class="mode-banner">
     <div class="mode-banner-left">
       <span class="mode-tag">⚡ 3D EXPERIENCE</span>
-      <span>You are viewing the <strong>3D Automation Preview Edition</strong></span>
+      <span>You are viewing the <strong>3D Automation Preview Edition</strong> (Interactive 3D Vietnam Map & Buses)</span>
     </div>
     <a href="index.html" class="mode-switch-btn">← Switch to Classic Mode</a>
   </div>
@@ -82,11 +82,11 @@
       <!-- Left Hero Text -->
       <div class="hero-interactive-left">
         <div class="badge-tech">
-          <span>●</span> 3D AUTOMATION PLATFORM v9.0
+          <span>●</span> 3D AUTONOMOUS VIETNAM NETWORK v10.0
         </div>
         <h1 class="hero-title-main">
           Vietnam Visa Run & <br/>
-          <span class="hero-title-gradient">Autonomous 3D Network</span>
+          <span class="hero-title-gradient">3D Live Transport Stream</span>
         </h1>
         <p class="hero-description" data-i18n="hero_desc">
           Premier <strong>Sleeper Bus & VIP Limousine Visa Runs</strong> from <strong>Da Nang, Nha Trang, Hanoi</strong> to Laos (Lao Bao, Bo Y), Cambodia (Moc Bai) & China (Huu Nghi). <strong>Emergency E-Visa in 1h–4h</strong>, and <strong>VIP Airport Fast Track $70</strong>.
@@ -97,7 +97,7 @@
             <span>⚡</span> <span data-i18n="hero_cta_calc">Calculate & Book Now</span>
           </a>
           <a href="#simulator" class="btn-3d-outline">
-            <span>🧭</span> Watch Automation Pipeline
+            <span>🧭</span> 3D Automation Pipeline
           </a>
         </div>
       </div>
@@ -147,7 +147,7 @@
           </div>
 
           <div class="hud-map-hint">
-            <span>💡</span> Click and drag to orbit 3D terrain map in real-time
+            <span>💡</span> Click any 3D Bus or Beacon on the map to view instant schedule & booking info
           </div>
         </div>
       </div>
@@ -220,16 +220,21 @@
           </div>
         </div>
 
-        <!-- Live Step Status Box -->
-        <div class="sim-live-viewport">
-          <div class="live-stage-status">
-            <div class="live-pulse-radar"></div>
-            <div>
-              <div class="live-stage-title" id="sim-live-title">Step 1: VIP Hotel Door-to-Door Pickup</div>
-              <div class="live-stage-detail" id="sim-live-desc">01:45 AM Sleeper Bus / 03:00 AM VIP Car arrives directly at your Villa/Hotel. Driver confirms booking via WhatsApp GPS coordinates.</div>
-            </div>
+        <!-- Live Step Visual Viewport -->
+        <div class="sim-live-viewport-split">
+          <div class="sim-viewport-img-wrap">
+            <img id="sim-live-img" src="3d_step1_bus.jpg" alt="3D Automation Step Visual"/>
           </div>
-          <div class="hud-stat-val emerald" id="sim-live-status">Passenger boarded safely, Wi-Fi & AC verified.</div>
+          <div class="sim-viewport-info">
+            <div class="live-stage-status">
+              <div class="live-pulse-radar"></div>
+              <div>
+                <div class="live-stage-title" id="sim-live-title">Step 1: VIP Hotel Door-to-Door Pickup</div>
+                <div class="live-stage-detail" id="sim-live-desc">01:45 AM Sleeper Bus / 03:00 AM VIP Car arrives directly at your Villa/Hotel. Driver confirms booking via WhatsApp GPS coordinates.</div>
+              </div>
+            </div>
+            <div class="hud-stat-val emerald" style="margin-top:16px;" id="sim-live-status">Passenger boarded safely, Wi-Fi & AC verified.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -543,6 +548,21 @@
     </div>
   </section>
 
+  <!-- 3D INTERACTIVE CLICK MODAL -->
+  <div class="modal-3d-overlay" id="modal-3d-info" onclick="close3DModal()">
+    <div class="modal-3d-box" onclick="event.stopPropagation()">
+      <button type="button" class="modal-3d-close" onclick="close3DModal()">&times;</button>
+      <div class="modal-3d-tag">⚡ 3D LIVE TELEMETRY</div>
+      <h3 class="modal-3d-title" id="m3d-title">Route Information</h3>
+      <div class="modal-3d-content" id="m3d-details"></div>
+      <div class="modal-3d-actions">
+        <a id="m3d-wa-btn" href="https://wa.me/84868462071" target="_blank" class="btn-3d-primary" style="width:100%; justify-content:center;">
+          <span>📱</span> Book via WhatsApp 24/7
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Contact Buttons -->
   <div class="floating-contact">
     <a href="https://wa.me/84868462071" target="_blank" class="float-btn float-wa" aria-label="Chat WhatsApp">
@@ -600,7 +620,7 @@
       </div>
 
       <div class="footer-bottom">
-        <div>© 2026 Vietnam Visa Pass (VVP). All rights reserved. 3D Automation Engine v9.0.</div>
+        <div>© 2026 Vietnam Visa Pass (VVP). All rights reserved. 3D Automation Engine v10.0.</div>
         <div>
           <a href="index.html" style="color:var(--accent-cyan); margin-right:15px;">Classic Web Edition</a>
           <a href="index.html#terms" style="color:var(--text-dim);">Terms of Service</a>

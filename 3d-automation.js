@@ -1346,8 +1346,9 @@ const i18n = {
    ============================================================ */
 
 /* ============================================================
-   VIETNAM VISA PASS (VVP) — 3D AUTOMATION ENGINE
-   Three.js WebGL Hologram · Simulator Pipeline · Dynamic Pricing
+   VIETNAM VISA PASS (VVP) — AUTHENTIC 3D AUTOMATION ENGINE v10.0
+   Photorealistic 3D Vietnam Map · Interactive 3D Buses & Cars ·
+   4-Step Automation Pipeline with 3D Holographic Artifacts
    ============================================================ */
 
 let currentLang = 'en';
@@ -1563,32 +1564,87 @@ function getRouteDesc(route, lang) {
 }
 
 /* ============================================================
-   THREE.JS 3D SCENE & HOLOGRAPHIC ROUTE VISUALIZER
+   ADVANCED THREE.JS 3D VIETNAM MAP & INTERACTIVE 3D BUSES
    ============================================================ */
 
 let scene, camera, renderer, controls;
-let routeParticles = [];
-let checkpointMeshes = [];
-let currentCameraTarget = { x: 0, y: 0, z: 0 };
-let currentCameraPos = { x: 0, y: 15, z: 45 };
+let clickable3DObjects = [];
+let raycaster, mouse;
+let buses3D = [];
 
-const CHECKPOINTS = [
-  { id: 'danang', name: 'Đà Nẵng (HUB)', x: 6, y: 2, z: 0, color: 0x10b981, isHub: true },
-  { id: 'laobao', name: 'Lao Bảo (Laos Border)', x: -2, y: 4, z: 3, color: 0x06b6d4, dist: '240 km', time: '15 min' },
-  { id: 'nhatrang', name: 'Nha Trang (HUB)', x: 8, y: -8, z: -2, color: 0x10b981, isHub: true },
-  { id: 'boy', name: 'Bờ Y (Laos Border)', x: 2, y: -5, z: 5, color: 0xf59e0b, dist: '310 km', time: '20 min' },
-  { id: 'mocbai', name: 'Mộc Bài (Cambodia)', x: 0, y: -12, z: 2, color: 0x8b5cf6, dist: '380 km', time: '20 min' },
-  { id: 'hanoi', name: 'Hà Nội (HUB)', x: 0, y: 14, z: -2, color: 0x10b981, isHub: true },
-  { id: 'huunghi', name: 'Hữu Nghị (China Border)', x: 3, y: 17, z: 3, color: 0xec4899, dist: '170 km', time: '15 min' },
-  { id: 'hcm', name: 'TP. Hồ Chí Minh', x: 2, y: -14, z: 0, color: 0x10b981, isHub: true }
-];
+// Realistic Geographic Locations scaled to 3D Plane
+const VIETNAM_GEO_HUBS = {
+  hanoi: { name: 'Hà Nội (Capital HUB)', x: -1.5, y: 13.5, z: 0.5, color: 0x10b981, isCity: true, info: 'VIP DCar Limousine Office · Daily 09:00 AM departure to Huu Nghi Border Gate (China)' },
+  huunghi: { name: 'Cửa Khẩu Quốc Tế Hữu Nghị (China)', x: 1.5, y: 16.5, z: 1.2, color: 0xec4899, isBorder: true, info: 'International Border Gate to Pingxiang, Guangxi, China · 170 km Highway · 15 min clearance' },
+  danang: { name: 'Đà Nẵng & Hội An (HUB)', x: 4.8, y: 3.5, z: 0.5, color: 0x10b981, isCity: true, info: 'Door-to-Door Villa/Hotel Pickup · Sleeper Bus 01:45 AM (T3, T7) & VIP Car 03:00 AM Daily' },
+  laobao: { name: 'Cửa Khẩu Quốc Tế Lao Bảo (Laos)', x: -1.8, y: 5.2, z: 1.8, color: 0x06b6d4, isBorder: true, info: 'Major Trade Gateway to Savannakhet, Laos · 240 km QL9 · 15-20 min Fast Track clearance' },
+  nhatrang: { name: 'Nha Trang (Coastal HUB)', x: 7.2, y: -6.5, z: 0.5, color: 0x10b981, isCity: true, info: 'Boarding at 40 Hòn Chồng & No. 4 Trần Phú · Daily Sleeper Coaches to Cambodia & Laos' },
+  boy: { name: 'Cửa Khẩu Quốc Tế Bờ Y (Laos)', x: 2.2, y: -3.8, z: 2.2, color: 0xf59e0b, isBorder: true, info: 'Indochina Tripoint Gateway (Vietnam-Laos-Cambodia) in Kon Tum · 310 km · Daily 21:15 & 21:30' },
+  mocbai: { name: 'Cửa Khẩu Quốc Tế Mộc Bài (Cambodia)', x: 0.2, y: -11.5, z: 1.2, color: 0x8b5cf6, isBorder: true, info: 'Bavet Border Gate to Phnom Penh, Cambodia · 380 km from Nha Trang (21:30 T3,T5,CN) & 70 km from HCMC' },
+  hcm: { name: 'TP. Hồ Chí Minh (Saigon)', x: 2.5, y: -13.0, z: 0.5, color: 0x10b981, isCity: true, info: 'Tan Son Nhat Airport VIP Fast Track & Daily 07:00 AM Limousines to Moc Bai' }
+};
 
-const CORRIDOR_CURVES = [
-  { from: 'danang', to: 'laobao', color: 0x06b6d4 },
-  { from: 'nhatrang', to: 'boy', color: 0xf59e0b },
-  { from: 'nhatrang', to: 'mocbai', color: 0x8b5cf6 },
-  { from: 'hanoi', to: 'huunghi', color: 0xec4899 },
-  { from: 'hcm', to: 'mocbai', color: 0x10b981 }
+const BUS_ROUTES_CONFIG = [
+  {
+    id: 'route_danang_laobao',
+    name: 'Đà Nẵng ⇄ Lao Bảo (Lào)',
+    from: 'danang',
+    to: 'laobao',
+    type: 'sleeper',
+    vehicleName: 'VIP Sleeper Bus #01 (Da Nang ⇄ Lao Bao)',
+    schedule: '01:45 AM (T3, T7) & 03:00 AM Daily VIP Car',
+    fare: '850,000 ₫',
+    color: 0x06b6d4,
+    speed: 0.004
+  },
+  {
+    id: 'route_nhatrang_mocbai',
+    name: 'Nha Trang ⇄ Mộc Bài (Campuchia)',
+    from: 'nhatrang',
+    to: 'mocbai',
+    type: 'sleeper',
+    vehicleName: 'Luxury Sleeper Coach #02 (Nha Trang ⇄ Moc Bai)',
+    schedule: '21:30 PM (Tue, Thu, Sun)',
+    fare: '1,400,000 ₫',
+    color: 0x8b5cf6,
+    speed: 0.003
+  },
+  {
+    id: 'route_nhatrang_boy',
+    name: 'Nha Trang ⇄ Bờ Y (Lào)',
+    from: 'nhatrang',
+    to: 'boy',
+    type: 'sleeper',
+    vehicleName: 'Highland Sleeper Coach #03 (Nha Trang ⇄ Bo Y)',
+    schedule: '21:15 & 21:30 PM Daily',
+    fare: '1,400,000 ₫',
+    color: 0xf59e0b,
+    speed: 0.0035
+  },
+  {
+    id: 'route_hanoi_huunghi',
+    name: 'Hà Nội ⇄ Hữu Nghị (Trung Quốc)',
+    from: 'hanoi',
+    to: 'huunghi',
+    type: 'limousine',
+    vehicleName: 'DCar VIP Limousine #04 (Hanoi ⇄ Huu Nghi)',
+    schedule: '09:00 AM Daily Departure (Return 17:30)',
+    fare: '1,200,000 ₫',
+    color: 0xec4899,
+    speed: 0.005
+  },
+  {
+    id: 'route_hcm_mocbai',
+    name: 'TP.HCM ⇄ Mộc Bài (Campuchia)',
+    from: 'hcm',
+    to: 'mocbai',
+    type: 'limousine',
+    vehicleName: 'Express Limousine #05 (Saigon ⇄ Moc Bai)',
+    schedule: '07:00 AM Daily Express (Return 15:00)',
+    fare: '900,000 ₫',
+    color: 0x10b981,
+    speed: 0.006
+  }
 ];
 
 function init3DScene() {
@@ -1600,175 +1656,300 @@ function init3DScene() {
 
   // Scene
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x040711, 0.015);
+  scene.fog = new THREE.FogExp2(0x040711, 0.012);
 
   // Camera
   camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  camera.position.set(0, 15, 45);
+  camera.position.set(0, 10, 48);
 
   // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // OrbitControls if available
+  // Raycaster & Mouse
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  // OrbitControls
   if (typeof THREE.OrbitControls !== 'undefined') {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxDistance = 80;
-    controls.minDistance = 15;
-    controls.maxPolarAngle = Math.PI / 2 + 0.1;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.5;
+    controls.maxDistance = 85;
+    controls.minDistance = 14;
+    controls.maxPolarAngle = Math.PI / 2 + 0.08;
+    controls.autoRotate = false;
   }
 
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
   scene.add(ambientLight);
 
-  const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 1.2);
-  dirLight1.position.set(20, 40, 20);
-  scene.add(dirLight1);
+  const mainLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+  mainLight.position.set(25, 45, 30);
+  scene.add(mainLight);
 
-  const dirLight2 = new THREE.DirectionalLight(0x10b981, 0.8);
-  dirLight2.position.set(-20, -20, -20);
-  scene.add(dirLight2);
+  const goldLight = new THREE.DirectionalLight(0xf59e0b, 0.9);
+  goldLight.position.set(-25, -20, 20);
+  scene.add(goldLight);
 
-  // 3D Holographic Grid Base
-  const gridHelper = new THREE.GridHelper(80, 40, 0x06b6d4, 0x1e293b);
-  gridHelper.position.y = -18;
-  scene.add(gridHelper);
+  // 3D Realistic Textured Vietnam & Indochina Relief Map
+  buildPhotorealisticVietnamTerrain();
 
-  // Build Vietnam curved relief ribbon
-  buildVietnamRelief();
+  // Build 3D City & Border Checkpoint Beacons
+  buildHubBeacons();
 
-  // Build Checkpoint Beacons
-  buildCheckpoints();
+  // Build Animated 3D Buses & Road Highway Corridors
+  build3DRoadsAndBuses();
 
-  // Build Corridor Flow Arcs
-  buildCorridorArcs();
-
-  // Animation Loop
-  animate3D();
-
-  // Window Resize
+  // Click & Hover Listeners
+  window.addEventListener('click', onCanvasClick);
+  window.addEventListener('mousemove', onCanvasMouseMove);
   window.addEventListener('resize', onWindowResize);
+
+  // Start Animation
+  animate3D();
 }
 
-function buildVietnamRelief() {
-  const points = [
-    new THREE.Vector3(2, 18, 0),
-    new THREE.Vector3(0, 14, -1),
-    new THREE.Vector3(2, 8, 1),
-    new THREE.Vector3(5, 3, 0),
-    new THREE.Vector3(7, -2, -2),
-    new THREE.Vector3(8, -8, -1),
-    new THREE.Vector3(4, -13, 1),
-    new THREE.Vector3(1, -16, 2)
-  ];
-  const curve = new THREE.CatmullRomCurve3(points);
-  const geometry = new THREE.TubeGeometry(curve, 64, 0.6, 8, false);
-  const material = new THREE.MeshPhongMaterial({
-    color: 0x059669,
-    emissive: 0x047857,
-    shininess: 80,
-    wireframe: true,
+function buildPhotorealisticVietnamTerrain() {
+  const textureLoader = new THREE.TextureLoader();
+  const terrainTexture = textureLoader.load('vietnam_satellite_indochina.jpg');
+  terrainTexture.wrapS = THREE.ClampToEdgeWrapping;
+  terrainTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+  // Realistic S-Curve Vietnam Terrain Plane
+  const planeGeom = new THREE.PlaneGeometry(36, 46, 64, 64);
+  const planeMat = new THREE.MeshStandardMaterial({
+    map: terrainTexture,
+    roughness: 0.7,
+    metalness: 0.2,
     transparent: true,
-    opacity: 0.7
+    opacity: 0.92
   });
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+
+  const terrainMesh = new THREE.Mesh(planeGeom, planeMat);
+  terrainMesh.position.set(1.5, 1.5, -0.5);
+  scene.add(terrainMesh);
+
+  // Glowing Cyber Matrix Ground Base
+  const gridHelper = new THREE.GridHelper(90, 45, 0x06b6d4, 0x0f172a);
+  gridHelper.position.y = -22;
+  gridHelper.position.z = -1;
+  scene.add(gridHelper);
 }
 
-function buildCheckpoints() {
-  CHECKPOINTS.forEach(cp => {
-    // Beacon Pillar
-    const geom = new THREE.CylinderGeometry(0.1, cp.isHub ? 0.6 : 0.4, 4, 16);
-    const mat = new THREE.MeshPhongMaterial({
-      color: cp.color,
-      emissive: cp.color,
-      emissiveIntensity: 0.6,
+function buildHubBeacons() {
+  Object.keys(VIETNAM_GEO_HUBS).forEach(key => {
+    const hub = VIETNAM_GEO_HUBS[key];
+    const hubGroup = new THREE.Group();
+    hubGroup.position.set(hub.x, hub.y, hub.z);
+
+    // Glowing Pillar
+    const pillarGeom = new THREE.CylinderGeometry(0.12, hub.isCity ? 0.6 : 0.45, 4.5, 16);
+    const pillarMat = new THREE.MeshStandardMaterial({
+      color: hub.color,
+      emissive: hub.color,
+      emissiveIntensity: 0.8,
       transparent: true,
       opacity: 0.85
     });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(cp.x, cp.y + 2, cp.z);
-    scene.add(mesh);
+    const pillar = new THREE.Mesh(pillarGeom, pillarMat);
+    pillar.position.y = 2.25;
+    hubGroup.add(pillar);
 
-    // Glowing Ring
-    const ringGeom = new THREE.RingGeometry(0.6, 1.2, 24);
+    // Top Glowing Beacon Sphere
+    const sphereGeom = new THREE.SphereGeometry(hub.isCity ? 0.7 : 0.5, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+    sphere.position.y = 4.6;
+    hubGroup.add(sphere);
+
+    // Radar Ring
+    const ringGeom = new THREE.RingGeometry(0.8, 1.5, 32);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: cp.color,
+      color: hub.color,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.7
     });
     const ring = new THREE.Mesh(ringGeom, ringMat);
     ring.rotation.x = Math.PI / 2;
-    ring.position.set(cp.x, cp.y + 0.1, cp.z);
-    scene.add(ring);
+    ring.position.y = 0.1;
+    hubGroup.add(ring);
 
-    checkpointMeshes.push({ mesh, ring, cp });
+    // Bounding Box for Raycasting
+    const hitBoxGeom = new THREE.BoxGeometry(2.5, 6, 2.5);
+    const hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
+    const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
+    hitBox.position.y = 2.5;
+    hitBox.userData = { type: 'hub', key: key, data: hub };
+    hubGroup.add(hitBox);
+    clickable3DObjects.push(hitBox);
+
+    scene.add(hubGroup);
+    hub.ringMesh = ring;
   });
 }
 
-function buildCorridorArcs() {
-  CORRIDOR_CURVES.forEach(c => {
-    const fromCP = CHECKPOINTS.find(p => p.id === c.from);
-    const toCP = CHECKPOINTS.find(p => p.id === c.to);
-    if (!fromCP || !toCP) return;
+function create3DBusMesh(type, color) {
+  const busGroup = new THREE.Group();
 
-    const midX = (fromCP.x + toCP.x) / 2;
-    const midY = (fromCP.y + toCP.y) / 2;
-    const midZ = (fromCP.z + toCP.z) / 2 + 4;
+  if (type === 'sleeper') {
+    // Large 2-Floor Sleeper Bus Body
+    const bodyGeom = new THREE.BoxGeometry(2.4, 1.2, 0.9);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.8,
+      roughness: 0.2
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    busGroup.add(body);
+
+    // Colored Trim / Roof
+    const roofGeom = new THREE.BoxGeometry(2.3, 0.2, 0.85);
+    const roofMat = new THREE.MeshBasicMaterial({ color: color });
+    const roof = new THREE.Mesh(roofGeom, roofMat);
+    roof.position.y = 0.65;
+    busGroup.add(roof);
+
+    // Panoramic Tinted Windows
+    const winGeom = new THREE.BoxGeometry(2.2, 0.45, 0.92);
+    const winMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 });
+    const win = new THREE.Mesh(winGeom, winMat);
+    win.position.y = 0.15;
+    busGroup.add(win);
+
+    // Headlights
+    const lightGeom = new THREE.SphereGeometry(0.12, 8, 8);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const lightL = new THREE.Mesh(lightGeom, lightMat);
+    lightL.position.set(1.2, -0.2, 0.3);
+    const lightR = new THREE.Mesh(lightGeom, lightMat);
+    lightR.position.set(1.2, -0.2, -0.3);
+    busGroup.add(lightL);
+    busGroup.add(lightR);
+  } else {
+    // DCar VIP Limousine / 7-Seat Car Body
+    const carGeom = new THREE.BoxGeometry(1.6, 0.8, 0.7);
+    const carMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.9,
+      roughness: 0.1
+    });
+    const car = new THREE.Mesh(carGeom, carMat);
+    busGroup.add(car);
+
+    // Gold Luxury Trim
+    const trimGeom = new THREE.BoxGeometry(1.5, 0.1, 0.72);
+    const trimMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    const trim = new THREE.Mesh(trimGeom, trimMat);
+    trim.position.y = 0.4;
+    busGroup.add(trim);
+
+    // Headlights
+    const lightGeom = new THREE.SphereGeometry(0.1, 8, 8);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const light = new THREE.Mesh(lightGeom, lightMat);
+    light.position.set(0.8, -0.1, 0.2);
+    busGroup.add(light);
+  }
+
+  // Click HitBox
+  const hitGeom = new THREE.BoxGeometry(3, 2, 2);
+  const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+  const hit = new THREE.Mesh(hitGeom, hitMat);
+  busGroup.add(hit);
+
+  return { group: busGroup, hitBox: hit };
+}
+
+function build3DRoadsAndBuses() {
+  BUS_ROUTES_CONFIG.forEach(cfg => {
+    const fromHub = VIETNAM_GEO_HUBS[cfg.from];
+    const toHub = VIETNAM_GEO_HUBS[cfg.to];
+    if (!fromHub || !toHub) return;
+
+    // Curved Highway Path
+    const midX = (fromHub.x + toHub.x) / 2 + (fromHub.x > toHub.x ? -0.8 : 0.8);
+    const midY = (fromHub.y + toHub.y) / 2;
+    const midZ = Math.max(fromHub.z, toHub.z) + 1.2;
 
     const curve = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(fromCP.x, fromCP.y + 2, fromCP.z),
-      new THREE.Vector3(midX, midY + 3, midZ),
-      new THREE.Vector3(toCP.x, toCP.y + 2, toCP.z)
+      new THREE.Vector3(fromHub.x, fromHub.y, fromHub.z + 0.2),
+      new THREE.Vector3(midX, midY, midZ),
+      new THREE.Vector3(toHub.x, toHub.y, toHub.z + 0.2)
     );
 
-    // Tube line
-    const tubeGeom = new THREE.TubeGeometry(curve, 32, 0.12, 6, false);
-    const tubeMat = new THREE.MeshBasicMaterial({
-      color: c.color,
+    // Highway Glowing Tube
+    const tubeGeom = new THREE.TubeGeometry(curve, 32, 0.15, 8, false);
+    const tubeMat = new THREE.MeshStandardMaterial({
+      color: cfg.color,
+      emissive: cfg.color,
+      emissiveIntensity: 0.6,
       transparent: true,
-      opacity: 0.45
+      opacity: 0.65
     });
     const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
     scene.add(tubeMesh);
 
-    // Dynamic Flow Packet Particles
-    const particleGeom = new THREE.SphereGeometry(0.35, 12, 12);
-    const particleMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      wireframe: false
-    });
-    const particleMesh = new THREE.Mesh(particleGeom, particleMat);
-    scene.add(particleMesh);
+    // Create 3D Bus & VIP Car Models on Highway
+    const { group: busMesh, hitBox } = create3DBusMesh(cfg.type, cfg.color);
+    hitBox.userData = { type: 'bus', config: cfg };
+    clickable3DObjects.push(hitBox);
+    scene.add(busMesh);
 
-    routeParticles.push({ curve, mesh: particleMesh, progress: Math.random() });
+    buses3D.push({
+      mesh: busMesh,
+      curve: curve,
+      config: cfg,
+      progress: Math.random(),
+      forward: true
+    });
   });
 }
 
 function animate3D() {
   requestAnimationFrame(animate3D);
 
-  // Update Route Particle Flow
-  routeParticles.forEach(p => {
-    p.progress += 0.008;
-    if (p.progress > 1) p.progress = 0;
-    const pos = p.curve.getPoint(p.progress);
-    p.mesh.position.copy(pos);
+  // Move 3D Buses along Highway Curves
+  buses3D.forEach(b => {
+    if (b.forward) {
+      b.progress += b.config.speed;
+      if (b.progress >= 1) {
+        b.progress = 1;
+        b.forward = false;
+      }
+    } else {
+      b.progress -= b.config.speed;
+      if (b.progress <= 0) {
+        b.progress = 0;
+        b.forward = true;
+      }
+    }
+
+    const pos = b.curve.getPoint(b.progress);
+    const tangent = b.curve.getTangent(b.progress);
+    b.mesh.position.copy(pos);
+
+    // Orient bus towards direction of movement
+    if (b.forward) {
+      b.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), tangent);
+    } else {
+      b.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), tangent.negate());
+    }
   });
 
-  // Pulse Checkpoint Rings
+  // Radar Pulse on City Hub Rings
   const time = Date.now() * 0.003;
-  checkpointMeshes.forEach(cm => {
-    const scale = 1 + Math.sin(time + cm.cp.x) * 0.25;
-    cm.ring.scale.set(scale, scale, scale);
+  Object.keys(VIETNAM_GEO_HUBS).forEach(k => {
+    const hub = VIETNAM_GEO_HUBS[k];
+    if (hub.ringMesh) {
+      const scale = 1 + Math.sin(time + hub.x) * 0.3;
+      hub.ringMesh.scale.set(scale, scale, scale);
+    }
   });
 
   if (controls) controls.update();
@@ -1787,55 +1968,143 @@ function onWindowResize() {
   renderer.setSize(width, height);
 }
 
-window.focus3DRoute = function(routeKey) {
-  const hudBtn = document.querySelector(`.hud-route-btn[data-route="${routeKey}"]`);
-  if (hudBtn) {
-    document.querySelectorAll('.hud-route-btn').forEach(b => b.classList.remove('active'));
-    hudBtn.classList.add('active');
-  }
+function onCanvasMouseMove(event) {
+  const container = document.getElementById('three-canvas-container');
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-  // Update Telemetry HUD
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(clickable3DObjects);
+
+  if (intersects.length > 0) {
+    document.body.style.cursor = 'pointer';
+  } else {
+    document.body.style.cursor = 'default';
+  }
+}
+
+function onCanvasClick(event) {
+  const container = document.getElementById('three-canvas-container');
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(clickable3DObjects);
+
+  if (intersects.length > 0) {
+    const target = intersects[0].object;
+    if (target.userData && target.userData.type === 'bus') {
+      show3DModalForBus(target.userData.config);
+    } else if (target.userData && target.userData.type === 'hub') {
+      show3DModalForHub(target.userData.data);
+    }
+  }
+}
+
+window.show3DModalForBus = function(cfg) {
+  const modal = document.getElementById('modal-3d-info');
+  const title = document.getElementById('m3d-title');
+  const details = document.getElementById('m3d-details');
+  const waBtn = document.getElementById('m3d-wa-btn');
+
+  if (title) title.textContent = cfg.vehicleName;
+  if (details) {
+    details.innerHTML = `
+      <div style="margin-bottom:12px;"><strong style="color:#38bdf8;">🛣️ Route:</strong> ${cfg.name}</div>
+      <div style="margin-bottom:12px;"><strong style="color:#34d399;">⏰ Departure Schedule:</strong> ${cfg.schedule}</div>
+      <div style="margin-bottom:12px;"><strong style="color:#fbbf24;">💎 All-Inclusive Fare:</strong> ${cfg.fare}</div>
+      <div style="margin-bottom:12px;"><strong style="color:#a78bfa;">🛡️ Guarantee:</strong> 100% Money-Back & Government Fee Refund Guarantee</div>
+      <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
+        VIP door-to-door concierge, air-conditioned luxury sleeper berth / leather VIP seats, professional border assistant escorting you through diplomatic clearance lane.
+      </p>
+    `;
+  }
+  if (waBtn) {
+    const msg = `Hello Vietnam Visa Pass! I want to book: ${cfg.vehicleName} (${cfg.name}) - ${cfg.fare}`;
+    waBtn.href = `https://wa.me/84868462071?text=${encodeURIComponent(msg)}`;
+  }
+  if (modal) modal.classList.add('open');
+};
+
+window.show3DModalForHub = function(hub) {
+  const modal = document.getElementById('modal-3d-info');
+  const title = document.getElementById('m3d-title');
+  const details = document.getElementById('m3d-details');
+  const waBtn = document.getElementById('m3d-wa-btn');
+
+  if (title) title.textContent = `📍 ${hub.name}`;
+  if (details) {
+    details.innerHTML = `
+      <div style="margin-bottom:14px; font-size:0.95rem; color:#f8fafc; line-height:1.6;">${hub.info}</div>
+      <div style="margin-bottom:12px;"><strong style="color:#34d399;">⚡ Hotline 24/7:</strong> +84 868 462 071</div>
+      <div style="margin-bottom:12px;"><strong style="color:#38bdf8;">✈ Telegram Concierge:</strong> @vietnamvisapass</div>
+      <p style="font-size:0.85rem; color:var(--text-muted);">
+        Click below to receive instant schedule, seat availability and guaranteed booking consultation.
+      </p>
+    `;
+  }
+  if (waBtn) {
+    const msg = `Hello Vietnam Visa Pass! I need consultation for Hub / Border: ${hub.name}`;
+    waBtn.href = `https://wa.me/84868462071?text=${encodeURIComponent(msg)}`;
+  }
+  if (modal) modal.classList.add('open');
+};
+
+window.close3DModal = function() {
+  const modal = document.getElementById('modal-3d-info');
+  if (modal) modal.classList.remove('open');
+};
+
+window.focus3DRoute = function(routeKey) {
+  document.querySelectorAll('.hud-route-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-route') === routeKey);
+  });
+
   const statDist = document.getElementById('hud-stat-dist');
   const statSpeed = document.getElementById('hud-stat-speed');
   const statClear = document.getElementById('hud-stat-clear');
 
   if (routeKey === 'danang-laos') {
     if (statDist) statDist.textContent = '240 km (QL9)';
-    if (statSpeed) statSpeed.textContent = '01:45 AM / 03:00 AM';
+    if (statSpeed) statSpeed.textContent = '01:45 / 03:00 AM';
     if (statClear) statClear.textContent = '15 - 20 min';
     if (controls) {
-      controls.target.set(2, 3, 1);
-      camera.position.set(4, 10, 26);
+      controls.target.set(1.5, 4.5, 1);
+      camera.position.set(3, 10, 24);
     }
   } else if (routeKey === 'nhatrang-boy') {
     if (statDist) statDist.textContent = '310 km (QL14)';
     if (statSpeed) statSpeed.textContent = '21:15 & 21:30 Daily';
     if (statClear) statClear.textContent = '20 min';
     if (controls) {
-      controls.target.set(5, -6, 2);
-      camera.position.set(8, -2, 28);
+      controls.target.set(4.5, -5, 1.5);
+      camera.position.set(7, 0, 26);
     }
   } else if (routeKey === 'nhatrang-mocbai') {
     if (statDist) statDist.textContent = '380 km (Expressway)';
     if (statSpeed) statSpeed.textContent = '21:30 (T3, T5, CN)';
     if (statClear) statClear.textContent = '20 min';
     if (controls) {
-      controls.target.set(4, -10, 0);
-      camera.position.set(6, -6, 28);
+      controls.target.set(3.5, -9, 1);
+      camera.position.set(5, -4, 28);
     }
   } else if (routeKey === 'hanoi-huunghi') {
-    if (statDist) statDist.textContent = '170 km (Cao Tốc HN-LS)';
+    if (statDist) statDist.textContent = '170 km (Highway)';
     if (statSpeed) statSpeed.textContent = '09:00 AM Daily';
     if (statClear) statClear.textContent = '15 min';
     if (controls) {
-      controls.target.set(1, 15, 0);
-      camera.position.set(3, 18, 25);
+      controls.target.set(0, 15, 1);
+      camera.position.set(2, 18, 22);
     }
   }
 };
 
 /* ============================================================
-   VISA RUN AUTOMATION SIMULATOR (4-STEP INTERACTIVE ENGINE)
+   VISA RUN AUTOMATION SIMULATOR (4-STEP PIPELINE ENGINE)
    ============================================================ */
 
 let simCurrentStep = 1;
@@ -1851,25 +2120,29 @@ const SIMULATION_DATA = {
         title: 'Step 1: VIP Hotel Door-to-Door Pickup',
         desc: '01:45 AM Sleeper Bus / 03:00 AM VIP Car arrives directly at your Villa/Hotel in Da Nang or Hoi An. Driver confirms booking via WhatsApp GPS coordinates.',
         tag: 'GPS TRACKED · 01:45 / 03:00 AM',
-        status: 'Passenger boarded safely, Wi-Fi & AC verified.'
+        status: 'Passenger boarded safely, Wi-Fi & AC verified.',
+        image: '3d_step1_bus.jpg'
       },
       {
         title: 'Step 2: VIP Express Transit & Vietnam Exit',
         desc: 'Arrive at Lao Bao International Border Gate. VVP Concierge escorts passenger through VIP diplomatic lane for rapid Vietnam exit stamping.',
         tag: 'DIPLOMATIC LANE · 15 MIN CLEARANCE',
-        status: 'Vietnam exit stamp processed successfully.'
+        status: 'Vietnam exit stamp processed successfully.',
+        image: '3d_step2_exit.jpg'
       },
       {
         title: 'Step 3: Laos Neutral Zone Transit & Entry',
         desc: 'Cross into Laos territory, complete arrival form & visa exemption/fee check. Dedicated guide ensures smooth transition without language barrier.',
         tag: 'LAOS IMMIGRATION · SECURE TRANSIT',
-        status: 'Laos entry & exit processed in single smooth flow.'
+        status: 'Laos entry & exit processed in single smooth flow.',
+        image: '3d_step3_neutral.jpg'
       },
       {
         title: 'Step 4: 90-Day E-Visa Activation & Return',
         desc: 'Re-enter Vietnam with newly approved 90-day E-Visa in hand. Board luxury vehicle back to Da Nang by 13:30 - 15:30 same day.',
         tag: 'E-VISA ACTIVATED · RETURN HOME',
-        status: 'Visa run complete! 90-day stay refreshed.'
+        status: 'Visa run complete! 90-day stay refreshed.',
+        image: '3d_step4_evisa.jpg'
       }
     ]
   },
@@ -1880,25 +2153,29 @@ const SIMULATION_DATA = {
         title: 'Step 1: Boarding at Nha Trang Central Hub',
         desc: '21:15 & 21:30 PM departure from 40 Hon Chong / No. 4 Tran Phu. Spacious 2m luxury sleeper bed with privacy curtains & charging port.',
         tag: 'LUXURY SLEEPER · 21:30 DEPARTURE',
-        status: 'Passenger boarded, overnight comfortable sleep.'
+        status: 'Passenger boarded, overnight comfortable sleep.',
+        image: '3d_step1_bus.jpg'
       },
       {
         title: 'Step 2: Morning Arrival & Border Escort',
         desc: 'Arrive early morning at Bo Y or Moc Bai border. Hot tea/coffee served, border assistant checks passport and pre-printed e-visa papers.',
         tag: 'VVP CONCIERGE · PAPERWORK VERIFIED',
-        status: 'Passports organized for priority clearance.'
+        status: 'Passports organized for priority clearance.',
+        image: '3d_step2_exit.jpg'
       },
       {
         title: 'Step 3: Border Crossing & Neutral Zone',
         desc: 'Walk across international corridor with guide. Fast track border stamping with zero queue delays.',
         tag: 'ZERO WAIT · DIRECT CLEARANCE',
-        status: 'International stamps completed.'
+        status: 'International stamps completed.',
+        image: '3d_step3_neutral.jpg'
       },
       {
         title: 'Step 4: Re-entry Approval & Return Ride',
         desc: 'Enter Vietnam smoothly with validated 90-day stamp. Return sleeper bus arrives back in Nha Trang refreshed and legally compliant.',
         tag: 'MISSION ACCOMPLISHED · 90-DAY STAY',
-        status: 'Welcome back to Nha Trang!'
+        status: 'Welcome back to Nha Trang!',
+        image: '3d_step4_evisa.jpg'
       }
     ]
   },
@@ -1909,25 +2186,29 @@ const SIMULATION_DATA = {
         title: 'Step 1: 09:00 AM VIP Limousine Departure',
         desc: 'Pick up at central Hanoi office in comfortable 9-seat DCar VIP Limousine via Hanoi - Lang Son express highway.',
         tag: 'EXPRESSWAY · 09:00 AM DEPARTURE',
-        status: 'Smooth 2.5h highway transit.'
+        status: 'Smooth 2.5h highway transit.',
+        image: '3d_step1_bus.jpg'
       },
       {
         title: 'Step 2: Huu Nghi Border Checkpoint',
         desc: 'Arrive at Huu Nghi international terminal. Dedicated escort leads directly to expedited clearance counter.',
         tag: 'PRIORITY COUNTER · 15 MIN',
-        status: 'Vietnam exit formalities completed.'
+        status: 'Vietnam exit formalities completed.',
+        image: '3d_step2_exit.jpg'
       },
       {
         title: 'Step 3: Neutral Zone Transit',
         desc: 'Pass through the Friendship gate neutral corridor, turnaround with ready entry clearance.',
         tag: 'FRIENDSHIP GATE · SMOOTH TURNAROUND',
-        status: 'Turnaround stamp finalized.'
+        status: 'Turnaround stamp finalized.',
+        image: '3d_step3_neutral.jpg'
       },
       {
         title: 'Step 4: 90-Day E-Visa Activation & Hanoi Return',
         desc: 'Receive official 90-day Vietnam immigration stamp. Depart back to Hanoi, arriving at your doorstep by 17:30.',
         tag: 'HOME BY 17:30 · GUARANTEED E-VISA',
-        status: 'Successful return to Hanoi capital.'
+        status: 'Successful return to Hanoi capital.',
+        image: '3d_step4_evisa.jpg'
       }
     ]
   }
@@ -1961,10 +2242,12 @@ window.setSimStep = function(stepNum) {
   const titleEl = document.getElementById('sim-live-title');
   const descEl = document.getElementById('sim-live-desc');
   const statusEl = document.getElementById('sim-live-status');
+  const imgEl = document.getElementById('sim-live-img');
 
   if (titleEl) titleEl.textContent = stepInfo.title;
   if (descEl) descEl.textContent = stepInfo.desc;
   if (statusEl) statusEl.textContent = stepInfo.status;
+  if (imgEl && stepInfo.image) imgEl.src = stepInfo.image;
 };
 
 window.toggleSimPlay = function() {
@@ -1980,7 +2263,7 @@ window.toggleSimPlay = function() {
       let nextStep = simCurrentStep + 1;
       if (nextStep > 4) nextStep = 1;
       window.setSimStep(nextStep);
-    }, 3200);
+    }, 3600);
   } else {
     if (simInterval) clearInterval(simInterval);
   }
