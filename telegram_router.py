@@ -1,0 +1,2709 @@
+import os
+import time
+import re
+import json
+import traceback
+from typing import Any, Optional, Dict, List
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Request, Response
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes,
+)
+
+from memory_store import memory_store, load_session_history
+import customer_memory
+from ai_agent import process_chat, identify_image_type, CustomerData
+from wizard_flows import (
+    CITY_OPTIONS,
+    ROUTE_SERVICES,
+    get_nationality_keyboard,
+    get_city_keyboard,
+    get_calendar_keyboard,
+    get_routes_keyboard,
+    generate_booking_final_message,
+    handle_step_callback,
+    identify_country,
+    send_step_reply,
+    analyze_customer_incoming_message,
+    get_payment_instruction_text,
+    get_payment_methods_keyboard,
+)
+from lark_api import create_customer_record, upload_image_to_lark, update_customer_image, update_order_status, create_order, get_daily_harvest_report
+from i18n import get_lang_code, get_msg
+from seat_map_generator import (
+    generate_seat_map,
+    RELATIVE_COORDINATES,
+    analyze_seat_map_image,
+    VALID_BUS_SEATS,
+    LOWER_DECK_SEATS,
+    UPPER_DECK_SEATS,
+)
+
+router = APIRouter()
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+ADMIN_TELEGRAM_ID = os.getenv("ADMIN_TELEGRAM_ID") or os.getenv("ID_TELEGRAM_QUAN_TRI", "")
+BUS_GROUP_CHAT_ID = os.getenv("BUS_GROUP_CHAT_ID", "")
+BUS_GROUP_TOPIC_ID = os.getenv("BUS_GROUP_TOPIC_ID", "")
+ADMIN_GROUP_CHAT_ID = os.getenv("ADMIN_GROUP_CHAT_ID") or os.getenv("ID_NHOM_CHAT_QUAN_TRI", "")
+ADMIN_GROUP_TOPIC_ID = os.getenv("ADMIN_GROUP_TOPIC_ID", "")
+
+# Biến toàn cục
+date_to_topic_id_map = {}
+latest_seat_maps = {}  
+scheme_history = {}  
+recent_scheme_requests = {}  
+
+# Load topic map from file if exists
+TOPIC_MAP_FILE = "topic_map.json"
+try:
+    import os
+    if os.path.exists(TOPIC_MAP_FILE):
+        with open(TOPIC_MAP_FILE, "r") as f:
+            date_to_topic_id_map = json.load(f)
+        print(f"Loaded topic map: {date_to_topic_id_map}")
+except Exception as e:
+    print("Lỗi load topic_map.json:", e)
+
+
+# ============================================================
+# CÁC HÀM HELPER
+# ============================================================
+def log_message(user_id, platform, role, content, customer_id: Optional[int] = None):
+    log_entry = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "user_id": str(user_id),
+        "platform": platform,
+        "role": role,
+        "content": content,
+    }
+    if customer_id is not None:
+        log_entry["customer_id"] = customer_id
+    try:
+        with open("chat_history.json", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+        session_id = f"{platform.lower()}_{user_id}"
+        customer_memory.save_chat_message(session_id, platform.lower(), role.lower(), content, customer_id=customer_id)
+    except Exception:
+        pass
+
+
+def normalize_date(date_str: str) -> str:
+    if not date_str: return ""
+    # Loại bỏ khoảng trắng và chuyển về chuỗi
+    date_str = str(date_str).replace(" ", "")
+    # Tách các phần bằng / . -
+    parts = [p for p in re.split(r"[/.-]", date_str) if p]
+    
+    day, month = "", ""
+    
+    # Tìm ngày và tháng trong các phần (bỏ qua phần có 4 chữ số là Năm)
+    numeric_parts = [p for p in parts if p.isdigit()]
+    
+    if len(numeric_parts) >= 2:
+        # Nếu định dạng YYYY-MM-DD
+        if len(numeric_parts[0]) == 4:
+            month, day = numeric_parts[1], numeric_parts[2] if len(numeric_parts) > 2 else ""
+        # Nếu định dạng DD-MM-YYYY hoặc DD-MM
+        else:
+            day, month = numeric_parts[0], numeric_parts[1]
+            
+        if day and month:
+            try:
+                d_val, m_val = int(day[-2:]), int(month[-2:])
+                if not (1 <= d_val <= 31 and 1 <= m_val <= 12):
+                    return ""
+                return f"{d_val:02d}/{m_val:02d}"
+            except Exception:
+                return ""
+            
+    return ""
+
+
+def parse_topic_name(name: str) -> tuple[str, str]:
+    if not name: return "", ""
+    name_lower = name.lower()
+    
+    # 1. Tìm ngày dạng DD/MM hoặc DD-MM hoặc DD.MM
+    date_match = re.search(r"(\d{1,2})[/.-](\d{1,2})", name)
+    date_str = ""
+    if date_match:
+        day = date_match.group(1)
+        month = date_match.group(2)
+        if len(day) == 1: day = "0" + day
+        if len(month) == 1: month = "0" + month
+        date_str = f"{day}/{month}"
+        
+    # 2. Tìm loại hình dịch vụ
+    service_str = ""
+    if "90" in name_lower:
+        service_str = "90D"
+    elif "cambodia" in name_lower or "campuchia" in name_lower or "mộc bài" in name_lower or "moc bai" in name_lower:
+        service_str = "Cambodia"
+    else:
+        # Mặc định là 45D
+        service_str = "45D"
+        
+    return date_str, service_str
+
+
+async def get_or_register_topic_key(bot, thread_id: int) -> str | None:
+    if not thread_id:
+        return None
+        
+    # 1. Tìm trong bộ nhớ hiện tại
+    for key, tid in date_to_topic_id_map.items():
+        if str(tid) == str(thread_id):
+            return key
+            
+    # 2. Tìm trong recent_scheme_requests
+    req = recent_scheme_requests.get(str(thread_id))
+    if req and req.get("date"):
+        d = req["date"]
+        s = req.get("service", "45D")
+        key = f"{d}_{s}"
+        date_to_topic_id_map[key] = thread_id
+        return key
+
+    return None
+
+
+def get_customer_service_type(data, history_text: str = "", user_only_text: str = "") -> str | None:
+    loai_lower = (getattr(data, "loai_visa", "") or "").lower()
+    user_lower = (user_only_text or history_text or "").lower()
+    
+    # 1. Kiểm tra các dịch vụ KHÔNG CẦN XE BUÝT (Fast Track, Visa Online khẩn, Gia hạn)
+    non_bus_keywords = [
+        "fast track", "fasttrack", "sân bay", "airport", "đón sân bay",
+        "visa khẩn", "khẩn 4 giờ", "khẩn 4h", "khẩn 1 ngày", "khẩn 2 ngày", "khẩn 3 ngày", "khẩn 5 ngày",
+        "gia hạn", "extension", "work permit", "trc", "thẻ tạm trú"
+    ]
+    check_text = f"{loai_lower} {user_lower}".strip()
+    if any(kw in check_text for kw in non_bus_keywords) and not any(b in check_text for b in ["xe", "bus", "visarun", "chuyến đi"]):
+        return "NON_BUS"
+
+    # 2. Kiểm tra nếu khách hoặc loai_visa đã chọn rõ tuyến Cambodia / Mộc Bài
+    if any(kw in check_text for kw in ["cambodia", "campuchia", "mộc bài", "moc bai", "камбодж", "мокбай", "мок бай"]):
+        return "Cambodia"
+
+    # 3. Kiểm tra quốc tịch bắt buộc đi Cambodia (Nha Trang -> Bờ Y Lào chỉ áp dụng cho Nga, Belarus, Hàn Quốc, Nhật Bản, Luxembourg và 12 nước Đông Nam Á)
+    quoc_tich_lower = (getattr(data, "quoc_tich", "") or "").lower()
+    cambodia_mandatory_nationalities = [
+        "usa", "united states", "american", "united kingdom", "british", "great britain", 
+        "germany", "german", "france", "french", "canada", "canadian", "australia", "australian", 
+        "india", "indian", "kazakh", "kazakhstan", "ukraine", "ukrainian", "uzbek", "uzbekistan",
+        "kyrgyz", "kyrgyzstan", "tajik", "tajikistan", "poland", "italy", "spain", "czech",
+        "казах", "украин", "узбек", "кыргыз", "киргиз", "таджик", "сша", "великобритан", "герман", "франц",
+        "mỹ", "nước anh", "nước pháp", "nước đức", "úc", "ý", "tây ban nha"
+    ]
+    for nat in cambodia_mandatory_nationalities:
+        if nat in quoc_tich_lower:
+            return "Cambodia"
+
+    # 4. Kiểm tra nếu khách đã chọn rõ 90D hoặc 45D (tuyến Lào)
+    if any(kw in check_text for kw in ["90d", "90 d", "90 ngày", "90 days", "90-day", "90 day", "90д", "90 д", "90 дней", "e-visa 90", "90"]):
+        return "90D"
+
+    if any(kw in check_text for kw in ["45d", "45 d", "45 ngày", "45 days", "45-day", "45 day", "45д", "45 д", "45 дней", "visa free", "miễn thị thực", "miễn visa"]):
+        return "45D"
+
+    # Nếu chưa có thông tin chốt dịch vụ
+    return None
+
+
+def get_scheme_command(ngay: str, service: str | None = None, text_history: str = "") -> str | None:
+    if not ngay: return None
+    ngay_clean = normalize_date(ngay)
+    resolved_service = service
+    if not resolved_service or resolved_service not in ["45D", "90D", "Cambodia"]:
+        resolved_service = get_customer_service_type(None, user_only_text=text_history)
+        
+    if resolved_service == "Cambodia":
+        return f"Scheme {ngay_clean} - mộc bài"
+    elif resolved_service == "90D":
+        return f"Scheme {ngay_clean} - 90D laos"
+    elif resolved_service == "45D":
+        return f"Scheme {ngay_clean} - 45D laos"
+    return None
+
+
+def calculate_smart_departure(ngay_het_han: str, loai_visa: str = "", destination: str = "laos") -> str | None:
+    """Tính ngày khởi hành dựa trên lịch xe buýt.
+    - 45 ngày Laos (Nha Trang): chạy MỖI NGÀY → departure = expiry - 1
+    - 90 ngày Laos / Cambodia (45 & 90): chạy Thứ 3, 5, CN → tìm ngày gần nhất ≤ expiry - 1
+    """
+    if not ngay_het_han: return None
+    try:
+        from datetime import datetime, timedelta
+        exp_dt = None
+        for fmt in ["%d/%m/%Y", "%d/%m/%y", "%d/%m"]:
+            try:
+                exp_dt = datetime.strptime(ngay_het_han, fmt)
+                if "%Y" not in fmt and "%y" not in fmt:
+                    exp_dt = exp_dt.replace(year=datetime.now().year)
+                break
+            except: continue
+        if not exp_dt: return None
+
+        latest = exp_dt - timedelta(days=1)  # Ngày muộn nhất có thể đi
+        loai_lower = (loai_visa or "").lower()
+        dest_lower = (destination or "").lower()
+
+        # 45 ngày Laos chạy mỗi ngày
+        is_daily = "45" in loai_lower and "cambodia" not in dest_lower and "campuchia" not in dest_lower
+        if is_daily:
+            return latest.strftime("%d/%m")
+
+        # 90 ngày Laos + Cambodia (45 & 90) chạy Thứ 3, 5, CN
+        # weekday(): Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
+        valid_days = {1, 3, 6}  # Tue=1, Thu=3, Sun=6
+        for i in range(7):
+            check = latest - timedelta(days=i)
+            if check.weekday() in valid_days:
+                return check.strftime("%d/%m")
+        return latest.strftime("%d/%m")
+    except Exception as e:
+        print(f"Departure calc error: {e}")
+        return None
+
+
+def validate_and_adjust_departure(ngay_khoi_hanh: str, ngay_het_han: str, loai_visa: str = "", destination: str = "laos") -> str | None:
+    """Kiểm tra và tự động điều chỉnh ngày khởi hành cho khớp lịch chạy xe buýt thực tế (Thứ 3, 5, CN).
+    Nếu ngày khởi hành khách chọn không khớp lịch chạy xe, bot tự lùi về ngày chạy gần nhất trước đó.
+    """
+    calculated_date = calculate_smart_departure(ngay_het_han, loai_visa, destination)
+    if not ngay_khoi_hanh:
+        return calculated_date
+        
+    ngay_khoi_hanh_clean = normalize_date(ngay_khoi_hanh)
+    if ngay_khoi_hanh_clean == calculated_date:
+        return calculated_date
+
+    try:
+        from datetime import datetime, timedelta
+        dt = None
+        for fmt in ["%d/%m/%Y", "%d/%m/%y", "%d/%m"]:
+            try:
+                dt = datetime.strptime(ngay_khoi_hanh_clean, fmt)
+                if "%Y" not in fmt and "%y" not in fmt:
+                    dt = dt.replace(year=datetime.now().year)
+                break
+            except: continue
+        if not dt:
+            return calculated_date
+
+        loai_lower = (loai_visa or "").lower()
+        dest_lower = (destination or "").lower()
+
+        # 45 ngày Laos chạy mỗi ngày
+        is_daily = "45" in loai_lower and "cambodia" not in dest_lower and "campuchia" not in dest_lower
+        if is_daily:
+            return ngay_khoi_hanh_clean
+
+        # Lịch chạy cố định: Thứ 3 (1), Thứ 5 (3), Chủ Nhật (6)
+        valid_days = {1, 3, 6}
+        if dt.weekday() in valid_days:
+            return ngay_khoi_hanh_clean
+        
+        # Nếu không hợp lệ lịch chạy, tìm ngày chạy gần nhất trước đó
+        for i in range(1, 8):
+            check = dt - timedelta(days=i)
+            if check.weekday() in valid_days:
+                adjusted_date = check.strftime("%d/%m")
+                print(f"🔄 Điều chỉnh ngày khởi hành: {ngay_khoi_hanh_clean} -> {adjusted_date} (Khớp Thứ 3, 5, CN)")
+                return adjusted_date
+    except Exception as e:
+        print(f"Lỗi validate_and_adjust_departure: {e}")
+
+    return calculated_date
+
+
+def format_bus_booking_notification(data, ngay_di: str = "", service_type: str = "") -> str:
+    """
+    Format operational bus seat booking notification message for partner / bus group.
+    
+    Example output:
+    13/09-90D- Laos
+    TSARENKO EKATERINA
+    A2
+    RODICHEV DMITRY
+    B1
+    40 Hon Chong - 9:30PM
+    📍https://maps.app.goo.gl/LmwZhraVzHBuxoTm9
+
+    Single
+    E-visa 4 hour x 2 person
+    14/09 - 8:00: Exit Bo Y
+    14/09 - 11:30: Entry Bo Y
+    """
+    def _get(field, default=""):
+        if data is None:
+            return default
+        if isinstance(data, dict):
+            return data.get(field, default) or default
+        return getattr(data, field, default) or default
+
+    # 1. Date normalization (DD/MM)
+    raw_date = ngay_di or _get("ngay_khoi_hanh", "") or _get("ngay_di", "")
+    date_match = re.search(r"(\d{1,2})[/-](\d{1,2})", str(raw_date))
+    if date_match:
+        d, m = int(date_match.group(1)), int(date_match.group(2))
+        ngay_di_str = f"{d:02d}/{m:02d}"
+    else:
+        ngay_di_str = datetime.now().strftime("%d/%m")
+
+    # 2. Destination & Service Code
+    combined_service = f"{service_type} {_get('tuyen_duong')} {_get('loai_visa')} {_get('goi_dich_vu')}".lower()
+    
+    if "cam" in combined_service:
+        dest_name = "Cambodia"
+        border_name = "Moc Bai"
+    else:
+        dest_name = "Laos"
+        border_name = "Bo Y"
+
+    if "45" in combined_service or "miễn" in combined_service or "free" in combined_service:
+        service_code = "45D"
+    elif "trc" in combined_service or "tam tru" in combined_service or "tạm trú" in combined_service:
+        service_code = "TRC"
+    else:
+        service_code = "90D"
+
+    header = f"{ngay_di_str}-{service_code}- {dest_name}"
+
+    # 3. Passenger Names
+    raw_names = _get("ho_ten") or _get("ten_khach") or _get("customer_name") or ""
+    split_names = [n.strip() for n in re.split(r"[,/\n;&]|\band\b|\bi\b", str(raw_names), flags=re.IGNORECASE) if n.strip()]
+    cleaned_names = []
+    for n in split_names:
+        clean_n = re.sub(r"\b\d{2,4}\b", "", n).strip().strip("-").strip()
+        if clean_n and len(clean_n) > 1:
+            cleaned_names.append(clean_n.upper())
+    
+    # 4. Seats
+    raw_seats = _get("ghe_chon") or _get("seat_number") or ""
+    if isinstance(raw_seats, (list, tuple)):
+        raw_seats = " ".join(str(s) for s in raw_seats)
+    seats = [s.upper() for s in re.findall(r"\b[A-Za-z]\d{1,2}\b|\b\d{1,2}\b", str(raw_seats))]
+
+    # Interleave names and seats
+    passenger_lines = []
+    if not cleaned_names and not seats:
+        passenger_lines.append("Khách")
+    elif not cleaned_names and seats:
+        passenger_lines.append("Khách")
+        for s in seats:
+            passenger_lines.append(s)
+    elif cleaned_names and not seats:
+        for n in cleaned_names:
+            passenger_lines.append(n)
+    else:
+        min_len = min(len(cleaned_names), len(seats))
+        for i in range(min_len):
+            passenger_lines.append(cleaned_names[i])
+            passenger_lines.append(seats[i])
+        for i in range(min_len, len(cleaned_names)):
+            passenger_lines.append(cleaned_names[i])
+        for i in range(min_len, len(seats)):
+            passenger_lines.append(seats[i])
+
+    # 5. Pickup Location & Map
+    diem_don = _get("diem_don") or "40 Hon Chong"
+    diem_don_lower = str(diem_don).lower()
+    
+    if any(k in diem_don_lower for k in ["40 hon chong", "hon chong", "oceanus", "muong thanh vien trieu", "vien trieu"]):
+        pickup_line = "40 Hon Chong - 9:30PM"
+        map_link = "📍https://maps.app.goo.gl/LmwZhraVzHBuxoTm9"
+    elif any(k in diem_don_lower for k in ["tran phu", "04 tran phu", "4 tran phu"]):
+        pickup_line = "04 Tran Phu - Muong Thanh - 9:15PM"
+        map_link = "📍https://maps.app.goo.gl/hPNMWxUAmm4VcgWK9"
+    elif any(k in diem_don_lower for k in ["bo ke", "bo cat"]):
+        pickup_line = "New Bo Ke Bo Cat - 9:30PM"
+        map_link = "📍https://maps.app.goo.gl/Kc6dm92VVAF1j13j9"
+    else:
+        if any(t in str(diem_don) for t in ["PM", "AM", "pm", "am", "21:", "9:"]):
+            pickup_line = str(diem_don)
+        else:
+            pickup_line = f"{diem_don} - 9:30PM"
+        map_link = "📍https://maps.app.goo.gl/LmwZhraVzHBuxoTm9"
+
+    # 6. Visa & Border Crossing Schedule
+    pax_count = max(len(cleaned_names), len(seats), 1)
+    
+    visa_raw = f"{_get('loai_visa')} {_get('goi_dich_vu')}".lower()
+    if "multi" in visa_raw:
+        entry_type = "Multi"
+    else:
+        entry_type = "Single"
+
+    if service_code == "90D" or "e-visa" in visa_raw or "evisa" in visa_raw:
+        visa_line = f"E-visa 4 hour x {pax_count} person"
+    elif service_code == "45D":
+        visa_line = f"45D Visa Free x {pax_count} person"
+    elif service_code == "TRC":
+        visa_line = f"TRC x {pax_count} person"
+    else:
+        visa_line = f"E-visa 4 hour x {pax_count} person"
+
+    # Calculate Border Crossing Date (Departure + 1 day)
+    try:
+        d_val, m_val = map(int, ngay_di_str.split("/"))
+        year = datetime.now().year
+        dep_dt = datetime(year, m_val, d_val)
+        border_dt = dep_dt + timedelta(days=1)
+        border_date_str = border_dt.strftime("%d/%m")
+    except Exception:
+        border_date_str = ngay_di_str
+
+    exit_line = f"{border_date_str} - 8:00: Exit {border_name}"
+    entry_line = f"{border_date_str} - 11:30: Entry {border_name}"
+
+    lines = [
+        header,
+        *passenger_lines,
+        pickup_line,
+        map_link,
+        "",
+        entry_type,
+        visa_line,
+        exit_line,
+        entry_line
+    ]
+
+    return "\n".join(lines)
+
+
+
+def build_seat_map_caption(lang: str, ngay: str, service: str, map_data: dict | None = None) -> str:
+    route_tag = "Cambodia (Moc Bai)" if service == "Cambodia" else f"Laos (Bo Y - {service})"
+    booked = (map_data or {}).get("booked_seats") or []
+    avail = (map_data or {}).get("available_seats") or list(LOWER_DECK_SEATS + UPPER_DECK_SEATS)
+    low_a = [s for s in LOWER_DECK_SEATS if s in avail]
+    upp_a = [s for s in UPPER_DECK_SEATS if s in avail]
+
+    if lang == "vi":
+        lines = [
+            f"🚌 Sơ đồ ghế xe buýt ngày {ngay} ({route_tag})",
+            "",
+            f"✅ Ghế còn trống (ô màu trắng - có thể chọn):",
+            f"• Tầng dưới (số lẻ): {', '.join(low_a) if low_a else 'Hết chỗ'}",
+            f"• Tầng trên (số chẵn): {', '.join(upp_a) if upp_a else 'Hết chỗ'}",
+        ]
+        if booked:
+            lines.append(f"❌ Ghế đã có người ngồi (đánh dấu màu vàng - không chọn): {', '.join(booked)}")
+        lines.append("\n👉 Vui lòng chọn 1 ghế màu trắng còn trống và nhắn cho chúng tôi nhé! 😊")
+        return "\n".join(lines)
+    elif lang == "ru":
+        lines = [
+            f"🚌 Схема мест в автобусе на {ngay} ({route_tag})",
+            "",
+            f"✅ Свободные места (белые ячейки — можно выбрать):",
+            f"• Нижний ярус (нечетные): {', '.join(low_a) if low_a else 'Нет мест'}",
+            f"• Верхний ярус (четные): {', '.join(upp_a) if upp_a else 'Нет мест'}",
+        ]
+        if booked:
+            lines.append(f"❌ Занятые места (отмечены желтым — не выбирать): {', '.join(booked)}")
+        lines.append("\n👉 Пожалуйста, выберите одно свободное (белое) место и напишите его номер! 😊")
+        return "\n".join(lines)
+    else:
+        lines = [
+            f"🚌 Bus Seat Map for {ngay} ({route_tag})",
+            "",
+            f"✅ Available seats (unmarked white boxes — you can choose):",
+            f"• Lower Deck (Odd): {', '.join(low_a) if low_a else 'Full'}",
+            f"• Upper Deck (Even): {', '.join(upp_a) if upp_a else 'Full'}",
+        ]
+        if booked:
+            lines.append(f"❌ Occupied seats (marked in yellow — unavailable): {', '.join(booked)}")
+        lines.append("\n👉 Please choose one available white seat and send us the seat number! 😊")
+        return "\n".join(lines)
+
+
+async def send_to_bus_group(context, message: str, date: str | None = None, service: str | None = None):
+    ngay_clean = normalize_date(date) if date else ""
+    service = service or "45D"
+    topic_id = None
+    if date:
+        key = f"{ngay_clean}_{service}"
+        topic_id = date_to_topic_id_map.get(key)
+        if topic_id is None:
+            topic_id = date_to_topic_id_map.get(ngay_clean)
+    if topic_id is None and BUS_GROUP_TOPIC_ID:
+        try:
+            topic_id = int(BUS_GROUP_TOPIC_ID)
+        except Exception:
+            pass
+
+    # Luôn lưu yêu cầu Scheme gần nhất vào bộ nhớ trước để khi nhân viên thả ảnh vào nhóm TESTBOT là khớp ngay!
+    req_data = {
+        "date": ngay_clean,
+        "service": service,
+        "timestamp": time.time(),
+        "thread_id": topic_id,
+        "message_id": None,
+        "command": message,
+    }
+    recent_scheme_requests["latest"] = req_data
+    if topic_id:
+        recent_scheme_requests[str(topic_id)] = req_data
+    print(f"📌 Đã lưu recent_scheme_request: {req_data}")
+
+    target_groups = []
+    for g_cand in [BUS_GROUP_CHAT_ID, ADMIN_GROUP_CHAT_ID, memory_store.get("LAST_ACTIVE_GROUP_ID")]:
+        if g_cand and str(g_cand) not in target_groups:
+            target_groups.append(str(g_cand))
+
+    bot = context.bot if context else tg_app.bot
+    for tg_gid in target_groups:
+        try:
+            use_topic = topic_id if str(tg_gid) == str(BUS_GROUP_CHAT_ID) else None
+            sent_msg = await bot.send_message(chat_id=tg_gid, text=message, message_thread_id=use_topic)
+            if sent_msg and getattr(sent_msg, "message_id", None):
+                req_data["message_id"] = sent_msg.message_id
+                recent_scheme_requests[f"msg_{sent_msg.message_id}"] = req_data
+        except Exception as e:
+            try:
+                sent_msg = await bot.send_message(chat_id=tg_gid, text=message)
+                if sent_msg and getattr(sent_msg, "message_id", None):
+                    recent_scheme_requests[f"msg_{sent_msg.message_id}"] = req_data
+            except Exception as e2:
+                print(f"Bus Group Error ({tg_gid}):", e2)
+
+
+async def get_or_create_seat_map(ngay: str, service: str = "") -> dict | None:
+    """
+    Lấy thông tin sơ đồ ghế chính thức (file_id, url, booked_seats, available_seats) cho ngày và dịch vụ cụ thể.
+    Chỉ trả về khi đã có sơ đồ chính thức do Admin / Nhà xe tải lên, tuyệt đối KHÔNG tự tạo sơ đồ trống.
+    """
+    ngay_clean = normalize_date(ngay)
+    if not ngay_clean:
+        return None
+        
+    service = service or "45D"
+    key = f"{ngay_clean}_{service}"
+    file_path = f"static/map_{ngay_clean.replace('/', '_')}_{service}.jpg"
+    file_path_fallback = f"static/map_{ngay_clean.replace('/', '_')}.jpg"
+
+    # 1. Kiểm tra bộ nhớ cache
+    if key in latest_seat_maps:
+        return latest_seat_maps[key]
+    if ngay_clean in latest_seat_maps:
+        return latest_seat_maps[ngay_clean]
+
+    # 2. Nếu file tồn tại trên đĩa (đã được Admin/Nhà xe gửi vào hệ thống)
+    if os.path.exists(file_path):
+        seat_analysis = analyze_seat_map_image(file_path)
+        map_data = {
+            "file_id": None,
+            "url": f"/static/map_{ngay_clean.replace('/', '_')}_{service}.jpg",
+            "booked_seats": seat_analysis["booked_seats"],
+            "available_seats": seat_analysis["available_seats"],
+            "lower_available": seat_analysis["lower_available"],
+            "upper_available": seat_analysis["upper_available"],
+        }
+        latest_seat_maps[key] = map_data
+        return map_data
+    if os.path.exists(file_path_fallback):
+        seat_analysis = analyze_seat_map_image(file_path_fallback)
+        map_data = {
+            "file_id": None,
+            "url": f"/static/map_{ngay_clean.replace('/', '_')}.jpg",
+            "booked_seats": seat_analysis["booked_seats"],
+            "available_seats": seat_analysis["available_seats"],
+            "lower_available": seat_analysis["lower_available"],
+            "upper_available": seat_analysis["upper_available"],
+        }
+        latest_seat_maps[ngay_clean] = map_data
+        return map_data
+
+    # Chưa có sơ đồ chính thức từ Admin / Nhà xe -> Trả về None để Bot chờ Admin gửi
+    return None
+
+
+async def send_to_admin_group(context, message: str):
+    bot = context.bot if context else tg_app.bot
+    sent = False
+    group_id = ADMIN_GROUP_CHAT_ID or os.getenv("ID_NHOM_CHAT_QUAN_TRI")
+    if group_id:
+        try:
+            topic_id = int(ADMIN_GROUP_TOPIC_ID) if ADMIN_GROUP_TOPIC_ID else None
+            await bot.send_message(chat_id=int(group_id), text=message, message_thread_id=topic_id)
+            sent = True
+        except Exception as e:
+            print(f"Admin Group Error ({group_id}):", e)
+            
+    admin_uid = os.getenv("ADMIN_TELEGRAM_ID")
+    if admin_uid and (not sent or not group_id):
+        try:
+            await bot.send_message(chat_id=int(admin_uid), text=message)
+        except Exception as e:
+            print(f"Admin Direct Error ({admin_uid}):", e)
+
+
+# ============================================================
+# KHỞI TẠO BOT
+# ============================================================
+tg_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+
+async def notify_admin_incoming_message(
+    platform: str,
+    user_id: str,
+    user_text: str,
+    session_id: Optional[str] = None,
+    user_name: Optional[str] = None,
+    agent: Optional[str] = None,
+    bot_reply: Optional[str] = None,
+    mode: Optional[str] = None,
+    extra_info: Optional[Dict[str, Any]] = None
+):
+    """
+    Gửi thông báo tức thì lên Telegram cho Admin khi có khách nhắn tin qua các kênh:
+    Facebook, Zalo, Website, Telegram.
+    """
+    import html
+    admin_tele_id = os.getenv("ADMIN_TELEGRAM_ID") or os.getenv("ID_TELEGRAM_QUAN_TRI", "7323038761")
+    admin_group_id = os.getenv("ADMIN_GROUP_CHAT_ID") or os.getenv("ID_NHOM_CHAT_QUAN_TRI", "")
+    topic_id = os.getenv("ADMIN_GROUP_TOPIC_ID", "")
+
+    # Tránh gửi thông báo nếu chính Admin gửi tin nhắn trên Telegram
+    if admin_tele_id and str(user_id) == str(admin_tele_id) and "telegram" in platform.lower():
+        return
+
+    # Xác định nhãn kênh tiếp nhận (không dùng icon)
+    plat_lower = platform.lower()
+    if "facebook" in plat_lower or "fb" in plat_lower:
+        if "tích xanh" in plat_lower or "1244422022092408" in str(extra_info or {}):
+            chan_title = "Facebook (Fanpage Tích Xanh)"
+        elif "phụ" in plat_lower or "944798045391211" in str(extra_info or {}):
+            chan_title = "Facebook (Fanpage Phụ)"
+        else:
+            chan_title = "Facebook"
+    elif "zalo" in plat_lower:
+        chan_title = "Zalo (OA)"
+    elif "web" in plat_lower:
+        chan_title = f"Website (Nguồn: {agent})" if (agent and agent != "Direct") else "Website Chatbox"
+    elif "telegram" in plat_lower:
+        chan_title = "Telegram Business" if "business" in plat_lower else "Telegram"
+    elif "whatsapp" in plat_lower or "wa" in plat_lower:
+        chan_title = "WhatsApp Business"
+    else:
+        chan_title = platform
+
+    # Tra cứu thông tin khách hàng từ SQLite / Memory
+    full_name = user_name if (user_name and not user_name.startswith("Khách ")) else None
+    phone = None
+    nationality = None
+    
+    if session_id:
+        sess_name = memory_store.get(f"{session_id}_name")
+        if sess_name and not sess_name.startswith("Khách "):
+            full_name = sess_name
+        data_obj = memory_store.get(f"{session_id}_data")
+        if data_obj:
+            phone = getattr(data_obj, "so_dien_thoai", None)
+            nationality = getattr(data_obj, "quoc_tich", None)
+            if not full_name and getattr(data_obj, "ho_ten", None):
+                full_name = data_obj.ho_ten
+
+    # Tra cứu sâu hơn trong SQLite nếu chưa có
+    try:
+        base_plat = "whatsapp" if ("whatsapp" in plat_lower or "wa" in plat_lower) else "facebook" if "facebook" in plat_lower else "zalo" if "zalo" in plat_lower else "telegram" if "telegram" in plat_lower else "web"
+        cust_profile = customer_memory.get_customer_by_platform(base_plat, str(user_id))
+        if cust_profile:
+            cust_name = cust_profile.get("full_name")
+            if not full_name and cust_name and not cust_name.startswith("Khách "):
+                full_name = cust_name
+            if not phone: phone = cust_profile.get("phone_number")
+            if not nationality: nationality = cust_profile.get("nationality")
+    except Exception:
+        pass
+
+    display_name = full_name or f"Khách {platform.split()[0]} ({str(user_id)[:8]})"
+    display_phone = phone or "Chưa có"
+    display_nation = nationality or "Chưa xác định"
+
+    # Định dạng tin nhắn ngắn gọn nếu quá dài
+    clean_text = user_text.strip() if user_text else "[Không có nội dung]"
+    if len(clean_text) > 400:
+        clean_text = clean_text[:397] + "..."
+
+    import random
+
+    FRIENDLY_GREETINGS = [
+        "🔥 <b>Hey bạn ơi, có khách nhắn nè!</b>",
+        "⚡ <b>Ê bạn êi, khách vào hỏi kìa! Vào việc thôi!</b>",
+        "🎉 <b>Ting ting! Có khách ghé thăm nè bạn ơi!</b>",
+        "🚀 <b>Khách mới nổ tin nhắn nè người anh em!</b>",
+        "👀 <b>Hú hú bạn ơi, có khách vừa nhắn nè!</b>"
+    ]
+
+    # Nhãn trạng thái xử lý thân thiện, minh bạch
+    send_err = (extra_info or {}).get("send_error")
+    mode_str = mode or (memory_store.get(f"{session_id}_mode") if session_id else None) or memory_store.get("GLOBAL_BOT_MODE", os.getenv("DEFAULT_BOT_MODE", "auto"))
+    
+    if send_err:
+        status_badge = f"⚠️ Gửi qua API thất bại: {send_err}"
+    elif mode_str == "copilot":
+        status_badge = "Co-Pilot (Mình soạn nháp sẵn rồi nè, bạn duyệt cái là bay!)"
+    elif mode_str in ["manual", "off"]:
+        status_badge = "Thủ công (Mình đang ngồi hóng, bạn vào rep khách nha!)"
+    else:
+        status_badge = "Tự động (Đã gửi phản hồi thành công qua API)"
+
+    now_str = datetime.now().strftime("%H:%M:%S - %d/%m/%Y")
+    greeting = random.choice(FRIENDLY_GREETINGS)
+
+    lines = [
+        greeting,
+        "",
+        f"👤 <b>Khách iu:</b> {html.escape(str(display_name))} <code>(ID: {html.escape(str(user_id))})</code>",
+        f"📍 <b>Kênh ghé thăm:</b> {html.escape(chan_title)}",
+        f"📞 <b>Liên hệ:</b> {html.escape(str(display_phone))} | <b>Quốc tịch:</b> {html.escape(str(display_nation))}",
+        f"⏰ <b>Thời gian:</b> {now_str}",
+        "",
+        "💬 <b>Khách bảo là:</b>",
+        f"<i>\"{html.escape(clean_text)}\"</i>",
+        "",
+        f"📌 <b>Trạng thái:</b> {html.escape(status_badge)}"
+    ]
+
+    # Nếu có bản nháp Co-Pilot hoặc Bot đã trả lời tự động, đính kèm vào thông báo
+    if bot_reply:
+        reply_preview = bot_reply.strip()
+        if len(reply_preview) > 300:
+            reply_preview = reply_preview[:297] + "..."
+        lines.append("")
+        if send_err:
+            lines.append("🤖 <b>Dự thảo câu trả lời của Bot (chưa gửi được qua API):</b>")
+            lines.append(f"<i>\"{html.escape(reply_preview)}\"</i>")
+            lines.append("👉 <i>Gợi ý: Vui lòng kiểm tra lại Token API hoặc trực tiếp trả lời khách trên ứng dụng/Meta Suite nhé!</i>")
+        elif mode_str == "copilot":
+            lines.append("🤖 <b>Bản nháp mình gợi ý sẵn nè (duyệt là gửi luôn):</b>")
+            lines.append(f"<i>\"{html.escape(reply_preview)}\"</i>")
+        else:
+            lines.append("🤖 <b>Bot đã phản hồi khách:</b>")
+            lines.append(f"<i>\"{html.escape(reply_preview)}\"</i>")
+
+    msg_content = "\n".join(lines)
+
+    # Nút bấm mở Live Chat Studio
+    domain = os.getenv("RENDER_EXTERNAL_URL", "https://chatbot-easytrip.onrender.com").rstrip("/")
+    studio_url = f"{domain}/copilot/index.html"
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💬 Mở Live Chat Studio chiến luôn", url=studio_url)]
+    ])
+
+    bot = tg_app.bot
+    # 1. Gửi trực tiếp cho Admin Telegram cá nhân
+    if admin_tele_id:
+        try:
+            await bot.send_message(
+                chat_id=int(admin_tele_id),
+                text=msg_content,
+                parse_mode="HTML",
+                reply_markup=keyboard
+            )
+        except Exception as e_dm:
+            print(f"⚠️ Gửi thông báo tin nhắn mới tới Admin Telegram ({admin_tele_id}) lỗi:", e_dm)
+
+    # 2. Gửi vào Nhóm Quản Trị (nếu có cấu hình và khác ID cá nhân)
+    if admin_group_id and str(admin_group_id) != str(admin_tele_id):
+        try:
+            t_id = int(topic_id) if topic_id else None
+            await bot.send_message(
+                chat_id=int(admin_group_id),
+                text=msg_content,
+                parse_mode="HTML",
+                message_thread_id=t_id,
+                reply_markup=keyboard
+            )
+        except Exception:
+            pass
+
+async def send_new_customer_welcome_menu(chat_id: str | int, target_msg, conn_id=None):
+    welcome_text = (
+        "👋 Welcome to Easy Trip & Visa! 🚌🌏\n\n"
+        "🇷🇺 Пожалуйста, выберите ваш язык и гражданство:\n"
+        "🇬🇧 Please select your language and nationality:\n"
+        "🇰🇷 언어와 국적을 선택해 주세요:\n"
+        "🇻🇳 Vui lòng chọn ngôn ngữ & quốc tịch:"
+    )
+    keyboard = get_nationality_keyboard()
+    if conn_id:
+        await tg_app.bot.send_message(chat_id=int(chat_id), text=welcome_text, reply_markup=keyboard, parse_mode="Markdown", business_connection_id=conn_id)  # type: ignore
+    elif target_msg:
+        await target_msg.reply_text(welcome_text, reply_markup=keyboard, parse_mode="Markdown")
+
+
+async def send_returning_customer_request(chat_id: str | int, target_msg, conn_id=None):
+    returning_prompt = (
+        "🌟 Ưu đãi khách hàng cũ / Giới thiệu bạn bè\n\n"
+        "If you are a returning customer, **or a friend/relative booked on your behalf in the past**, or you previously used **another account/channel**, please send your **previous booking confirmation message, ticket screenshot, or your Full Passport Name / Phone number** to verify and receive your exclusive discount.\n\n"
+        "📌 Mẫu thông tin:\n"
+        "```text\n"
+        "10/09 - 90D - Laos\n"
+        "FULL NAME (As on Passport)\n"
+        "Seat: B10\n"
+        "Pickup: 40 Hon Chong - 9:30 PM\n"
+        "```\n\n"
+        "────────────────────\n"
+        "🌟 **СПЕЦИАЛЬНАЯ ЦЕНА ДЛЯ ПОСТОЯННЫХ КЛИЕНТОВ И ИХ ДРУЗЕЙ**\n\n"
+        "Если вы уже путешествовали с нами, **или бронировали через друзей/знакомых**, либо ранее писали с **другого аккаунта/устройства**, пожалуйста, отправьте **текст предыдущего бронирования, скриншот билета или ваши ФИО на латинице (по загранпаспорту) / номер телефона** для подтверждения и получения специальной цены постоянного клиента.\n\n"
+        "📌 **Пример формата бронирования:**\n"
+        "```text\n"
+        "10/09 - 90D - Laos\n"
+        "ФИО (по загранпаспорту)\n"
+        "Место: B10\n"
+        "Посадка: 40 Hon Chong - 21:30\n"
+        "```"
+    )
+    if conn_id:
+        await tg_app.bot.send_message(chat_id=int(chat_id), text=returning_prompt, parse_mode="Markdown", business_connection_id=conn_id)  # type: ignore
+    elif target_msg:
+        await target_msg.reply_text(returning_prompt, parse_mode="Markdown")
+
+
+async def send_official_channel_card(
+    chat_id: int,
+    target_msg: Any = None,
+    context: Optional[ContextTypes.DEFAULT_TYPE] = None,
+    business_connection_id: Optional[str] = None
+):
+    """
+    Tự động gửi ảnh mã QR và danh thiếp Kênh Telegram chính thức (@easytripvisa_co_ltd) kèm các nút bấm tiện ích.
+    """
+    caption = (
+        "🌟 **EASY TRIP & VISA — OFFICIAL TELEGRAM SUPPORT**\n\n"
+        "Welcome to **Easy Trip & Visa Co. Ltd**!\n"
+        "For direct human assistance, real-time bus schedules, and visa consultation, please connect with our official channels:\n\n"
+        "• 👤 **Official Telegram**: [@easytripvisa_co_ltd](https://t.me/easytripvisa_co_ltd)\n"
+        "• 📢 **News & Bus Schedule Channel**: [Easy Trip Channel](https://t.me/visaEASYTRIP)\n"
+        "• 📞 **Hotline / WhatsApp / Zalo**: `+84 853 201 277` (Open 24/7)\n"
+        "• 🌐 **Official Website**: [easytripvisa.com](https://www.easytripvisa.com)\n"
+        "• 📍 **Head Office**: 21 Phan Vinh, Nha Trang, Khanh Hoa, Vietnam\n\n"
+        "👉 *Scan the QR code above or tap the buttons below to chat directly with our team!*"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💬 Chat on Official Telegram", url="https://t.me/easytripvisa_co_ltd")],
+        [InlineKeyboardButton("📢 News & Schedule Channel", url="https://t.me/visaEASYTRIP")],
+        [InlineKeyboardButton("🌐 Visit Official Website", url="https://www.easytripvisa.com")]
+    ])
+    
+    official_qr_file = "static/official_telegram_qr.png"
+    if not os.path.exists(official_qr_file):
+        official_qr_file = "static/official_telegram_channel.png"
+
+    bot = context.bot if context else tg_app.bot
+
+    if os.path.exists(official_qr_file):
+        try:
+            with open(official_qr_file, "rb") as f:
+                if business_connection_id:
+                    await bot.send_photo(chat_id=chat_id, photo=f, caption=caption, reply_markup=keyboard, parse_mode="Markdown", business_connection_id=business_connection_id)
+                elif target_msg and hasattr(target_msg, "reply_photo"):
+                    await target_msg.reply_photo(photo=f, caption=caption, reply_markup=keyboard, parse_mode="Markdown")
+                else:
+                    await bot.send_photo(chat_id=chat_id, photo=f, caption=caption, reply_markup=keyboard, parse_mode="Markdown")
+                return True
+        except Exception as e:
+            print("⚠️ Lỗi gửi ảnh kênh chính thức:", e)
+
+    # Fallback gửi text nếu không gửi được ảnh
+    try:
+        if business_connection_id:
+            await bot.send_message(chat_id=chat_id, text=caption, reply_markup=keyboard, parse_mode="Markdown", business_connection_id=business_connection_id)
+        elif target_msg and hasattr(target_msg, "reply_text"):
+            await target_msg.reply_text(caption, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            await bot.send_message(chat_id=chat_id, text=caption, reply_markup=keyboard, parse_mode="Markdown")
+    except Exception as e_fallback:
+        print("⚠️ Lỗi gửi text kênh chính thức:", e_fallback)
+    return False
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id) if update.effective_user else ""
+    session_id = f"telegram_{user_id}"
+    
+    # Reset phiên chat trong bộ nhớ khi /start
+    memory_store[session_id] = []
+    memory_store[f"{session_id}_mode"] = "auto"
+    memory_store[f"{session_id}_sent_official_channel"] = True
+    if f"{session_id}_data" in memory_store:
+        del memory_store[f"{session_id}_data"]
+    if f"{session_id}_draft" in memory_store:
+        del memory_store[f"{session_id}_draft"]
+    if f"{session_id}_awaiting_old_booking" in memory_store:
+        del memory_store[f"{session_id}_awaiting_old_booking"]
+
+    user_lang = "en"
+    if update.effective_user and getattr(update.effective_user, "language_code", None):
+        lc = (update.effective_user.language_code or "").lower()
+        if lc.startswith("ru"):
+            user_lang = "ru"
+        elif lc.startswith("vi"):
+            user_lang = "vi"
+
+    if user_lang == "ru":
+        welcome_question = (
+            "👋 Добро пожаловать в Easy Trip & Visa! 🚌✨\n\n"
+            "• 👤 Поддержка: [@easytripvisa_co_ltd](https://t.me/easytripvisa_co_ltd)\n"
+            "• 📞 Горячая линия / WhatsApp: `+84 853 201 277` (24/7)\n\n"
+            "Вы или ваши знакомые ранее пользовались нашими услугами?\n"
+            "Пожалуйста, выберите вариант ниже:"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Чат с менеджером (@easytripvisa_co_ltd)", url="https://t.me/easytripvisa_co_ltd")],
+            [InlineKeyboardButton("📢 Канал новостей и расписания", url="https://t.me/visaEASYTRIP")],
+            [InlineKeyboardButton("🌟 Постоянный клиент (Скидка)", callback_data="cust_type|returning")],
+            [InlineKeyboardButton("🆕 Новый клиент", callback_data="cust_type|new")],
+            [InlineKeyboardButton("💬 Поддержка в WhatsApp", url="https://wa.me/84853201277")]
+        ])
+    elif user_lang == "vi":
+        welcome_question = (
+            "👋 Chào mừng bạn đến với Easy Trip & Visa! 🚌✨\n\n"
+            "• 👤 Hỗ trợ: [@easytripvisa_co_ltd](https://t.me/easytripvisa_co_ltd)\n"
+            "• 📞 **Hotline / WhatsApp**: `+84 853 201 277` (24/7)\n\n"
+            "Bạn (hoặc người thân được giới thiệu) đã từng đặt dịch vụ trước đây chưa?\n"
+            "Vui lòng chọn một lựa chọn bên dưới:"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Chat với nhân viên (@easytripvisa_co_ltd)", url="https://t.me/easytripvisa_co_ltd")],
+            [InlineKeyboardButton("📢 Kênh thông báo lịch xe", url="https://t.me/visaEASYTRIP")],
+            [InlineKeyboardButton("🌟 Khách hàng cũ (Ưu đãi thân thiết)", callback_data="cust_type|returning")],
+            [InlineKeyboardButton("🆕 Khách hàng mới", callback_data="cust_type|new")],
+            [InlineKeyboardButton("💬 Hỗ trợ WhatsApp trực tiếp", url="https://wa.me/84853201277")]
+        ])
+    else:
+        welcome_question = (
+            "👋 Welcome to Easy Trip & Visa!\n\n"
+            "• 👤 Support: [@easytripvisa_co_ltd](https://t.me/easytripvisa_co_ltd)\n"
+            "• 📞 **Hotline / WhatsApp**: `+84 853 201 277` (Open 24/7)\n\n"
+            "Have you (or a friend on your behalf) booked any service with us before?\n"
+            "Please select an option below:"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Chat on Official Telegram (@easytripvisa_co_ltd)", url="https://t.me/easytripvisa_co_ltd")],
+            [InlineKeyboardButton("📢 News & Schedule Channel", url="https://t.me/visaEASYTRIP")],
+            [InlineKeyboardButton("🌟 Returning Customer (Loyalty Discount)", callback_data="cust_type|returning")],
+            [InlineKeyboardButton("🆕 New Customer", callback_data="cust_type|new")],
+            [InlineKeyboardButton("💬 Direct WhatsApp Support", url="https://wa.me/84853201277")]
+        ])
+    
+    target_chat_id = update.effective_chat.id if update.effective_chat else int(user_id or 0)
+    target_msg: Any = update.message or update.business_message or (update.callback_query.message if update.callback_query else None)
+    conn_id = update.business_message.business_connection_id if update.business_message else memory_store.get(f"{session_id}_business_connection_id")
+    if conn_id:
+        memory_store[f"{session_id}_business_connection_id"] = conn_id
+    
+    official_qr_file = "static/official_telegram_qr.png"
+    if not os.path.exists(official_qr_file):
+        official_qr_file = "static/official_telegram_channel.png"
+
+    sent_with_photo = False
+    if os.path.exists(official_qr_file):
+        try:
+            with open(official_qr_file, "rb") as f:
+                if conn_id:
+                    await context.bot.send_photo(chat_id=target_chat_id, photo=f, caption=welcome_question, reply_markup=keyboard, parse_mode="Markdown", business_connection_id=conn_id)
+                elif target_msg and hasattr(target_msg, "reply_photo"):
+                    await target_msg.reply_photo(photo=f, caption=welcome_question, reply_markup=keyboard, parse_mode="Markdown")
+                else:
+                    await context.bot.send_photo(chat_id=target_chat_id, photo=f, caption=welcome_question, reply_markup=keyboard, parse_mode="Markdown")
+            sent_with_photo = True
+        except Exception as e_p:
+            print("Lỗi reply_photo trong start_command:", e_p)
+
+    if not sent_with_photo:
+        if conn_id:
+            await context.bot.send_message(chat_id=target_chat_id, text=welcome_question, reply_markup=keyboard, parse_mode="Markdown", business_connection_id=conn_id)
+        elif target_msg:
+            await target_msg.reply_text(welcome_question, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            await context.bot.send_message(chat_id=target_chat_id, text=welcome_question, reply_markup=keyboard, parse_mode="Markdown")
+
+
+
+async def get_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message and update.effective_chat:
+        await update.message.reply_text(f"📍 Chat ID: `{update.effective_chat.id}`\nType: {update.effective_chat.type}", parse_mode='Markdown')
+
+
+# ============================================================
+# LOGIC XỬ LÝ TIN NHẮN TỪ KHÁCH HÀNG (TEXT & NÚT BẤM)
+# ============================================================
+async def process_customer_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: str, text: str):
+    session_id = f"telegram_{user_id}"
+    target_msg: Any = update.message or update.business_message or (update.callback_query.message if update.callback_query else None)
+    conn_id = update.business_message.business_connection_id if update.business_message else memory_store.get(f"{session_id}_business_connection_id")
+    if conn_id:
+        memory_store[f"{session_id}_business_connection_id"] = conn_id
+    target_chat_id = update.effective_chat.id if update.effective_chat else int(user_id)
+    
+    # 0. Bắn tín hiệu "Đang soạn tin nhắn..." (Typing Indicator) tức thì
+    try:
+        if conn_id:
+            await context.bot.send_chat_action(chat_id=target_chat_id, action="typing", business_connection_id=conn_id)
+        else:
+            await context.bot.send_chat_action(chat_id=target_chat_id, action="typing")
+    except Exception:
+        pass
+
+    # 0.1 Tự động gửi ảnh QR và Danh thiếp Kênh Telegram chính thức trong tin nhắn đầu tiên của phiên (chỉ gửi khi khách chat trực tiếp với Bot; nếu đã ở trong Telegram Business @easytripvisa_co_ltd thì không gửi trùng)
+    if not memory_store.get(f"{session_id}_sent_official_channel", False):
+        memory_store[f"{session_id}_sent_official_channel"] = True
+        if not conn_id:
+            try:
+                await send_official_channel_card(
+                    chat_id=target_chat_id,
+                    target_msg=target_msg,
+                    context=context,
+                    business_connection_id=conn_id
+                )
+            except Exception as e_ch:
+                print("Lỗi tự động gửi ảnh kênh chính thức đầu phiên:", e_ch)
+    else:
+        # Nếu khách hỏi thông tin liên hệ / kênh chính thức / nhân viên
+        contact_keywords = [
+            "admin", "nhân viên", "người thật", "kênh chính thức", "liên hệ", "số điện thoại",
+            "hotline", "channel", "human", "support", "человек", "оператор", "админ", "контакт", "менеджер"
+        ]
+        if any(k in text.lower() for k in contact_keywords):
+            try:
+                await send_official_channel_card(
+                    chat_id=target_chat_id,
+                    target_msg=target_msg,
+                    context=context,
+                    business_connection_id=conn_id
+                )
+            except Exception as e_req_card:
+                print("Lỗi gửi ảnh kênh chính thức theo yêu cầu:", e_req_card)
+
+    # 1. Truy xuất / Tra soát hồ sơ khách hàng bền vững từ SQLite & CRM
+    full_name_tg = update.effective_user.full_name if update.effective_user else None
+    is_awaiting_old = memory_store.get(f"{session_id}_awaiting_old_booking", False)
+    
+    # Tra soát xem tin nhắn có chứa thông tin booking cũ / tên khách cũ không
+    matched_cust = customer_memory.find_customer_by_booking_text(text)
+    
+    if matched_cust:
+        print(f"🎯 Đã nhận diện Khách Cũ từ tin nhắn/booking: {matched_cust.get('full_name')} (ID {matched_cust.get('customer_id')})")
+        cust_id_target = matched_cust.get("customer_id")
+        cust_profile = None
+        if cust_id_target:
+            cust_profile = customer_memory.link_telegram_to_customer(cust_id_target, user_id)
+        if not cust_profile:
+            cust_profile = matched_cust
+        memory_store.pop(f"{session_id}_awaiting_old_booking", None)
+    else:
+        cust_profile = customer_memory.get_or_create_customer("telegram", user_id, full_name=full_name_tg)
+        if is_awaiting_old:
+            memory_store.pop(f"{session_id}_awaiting_old_booking", None)
+            if cust_profile:
+                cust_profile["unverified_returning_attempt"] = True
+
+    cust_id = cust_profile.get("customer_id") if cust_profile else None
+
+
+    # Nếu khách bấm link câu mẫu mới từ Website (ví dụ: "Здравствуйте, Easy Trip & Visa! ..."), làm mới lịch sử phiên để không bị nhiễu dữ liệu cũ
+    text_clean_lower = text.strip().lower()
+    website_prefill_prefixes = (
+        "здравствуйте, easy trip",
+        "здравствуйте! я хочу",
+        "hi easy trip",
+        "hello easy trip",
+        "xin chào easy trip",
+        "안녕하세요, easy trip",
+        "مرحباً easy trip",
+    )
+    if text_clean_lower.startswith(website_prefill_prefixes):
+        memory_store[session_id] = []
+        memory_store.pop(f"{session_id}_data", None)
+    else:
+        load_session_history(session_id)
+
+    log_message(user_id, "Telegram", "User", text, customer_id=cust_id)
+    
+    # Ghi nhận tên hiển thị & thời gian cập nhật cuối
+    if update.effective_user:
+        memory_store[f"{session_id}_name"] = update.effective_user.full_name
+    memory_store[f"{session_id}_last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    target_msg: Any = update.message or update.business_message or (update.callback_query.message if update.callback_query else None)
+
+    # ─── BƯỚC: TỰ ĐỘNG NHẬN DIỆN KHÁCH CHỌN GHẾ SAU KHI GỬI SƠ ĐỒ XE ───
+    pending_booking = memory_store.get(f"{session_id}_pending_seats")
+    raw_found_seats = re.findall(r"\b([AB]\d{1,2})\b", text.upper())
+    valid_found_seats = [s for s in dict.fromkeys(raw_found_seats) if s in VALID_BUS_SEATS]
+
+    if valid_found_seats and (pending_booking or (memory_store.get(f"{session_id}_data") and getattr(memory_store.get(f"{session_id}_data"), "ghe_chon", None) and "Chờ" in str(memory_store.get(f"{session_id}_data").ghe_chon))):
+        lang = memory_store.get(f"{session_id}_lang", "ru")
+        u_name = (pending_booking.get("customer_name") if pending_booking else None) or getattr(update.effective_user, "full_name", "Easy Trip Visa")
+        u_handle = (pending_booking.get("customer_handle") if pending_booking else None) or getattr(update.effective_user, "username", "")
+        user_disp = f"{u_name} (@{u_handle})" if u_handle and u_handle != "N/A" else u_name
+        
+        cust_data = memory_store.get(f"{session_id}_data")
+        if not cust_data or not isinstance(cust_data, CustomerData):
+            cust_data = CustomerData()
+            memory_store[f"{session_id}_data"] = cust_data
+
+        if pending_booking:
+            total_needed = pending_booking.get("total_seats_needed", 1)
+            if len(valid_found_seats) < total_needed:
+                insufficient_prompts = {
+                    "vi": (
+                        f"⚠️ Quý khách đã đăng ký **{total_needed} giường** nhưng mới chọn **{len(valid_found_seats)} ghế** ({', '.join(valid_found_seats)}).\n\n"
+                        f"👉 Quý khách vui lòng chọn thêm **{total_needed - len(valid_found_seats)} ghế nữa** trên sơ đồ nhé! 😊"
+                    ),
+                    "ru": (
+                        f"⚠️ Вы бронируете **{total_needed} спальных места**, но указали только **{len(valid_found_seats)}** ({', '.join(valid_found_seats)}).\n\n"
+                        f"👉 Пожалуйста, выберите еще **{total_needed - len(valid_found_seats)} места** на актуальной схеме! 😊"
+                    ),
+                    "en": (
+                        f"⚠️ You reserved **{total_needed} beds**, but specified only **{len(valid_found_seats)}** ({', '.join(valid_found_seats)}).\n\n"
+                        f"👉 Please choose **{total_needed - len(valid_found_seats)} more seats** on the layout! 😊"
+                    )
+                }
+                await send_step_reply(update, context, insufficient_prompts.get(lang, insufficient_prompts["ru"]), parse_mode="Markdown")
+                return
+
+            chosen_seats = valid_found_seats[:total_needed]
+            seat_str = ", ".join(chosen_seats)
+            cust_data.ghe_chon = seat_str
+            cust_data.ngay_khoi_hanh = pending_booking.get("date_val", cust_data.ngay_khoi_hanh or "")
+            cust_data.loai_visa = pending_booking.get("route_name", cust_data.loai_visa or "Nha Trang ⇄ Lào Bờ Y (90 Ngày)")
+            
+            adults = pending_booking.get("adults", 1)
+            kids_over9 = pending_booking.get("kids_over9", 0)
+            kids_under9 = pending_booking.get("kids_under9", 0)
+            grand_total = pending_booking.get("grand_total", 4000000)
+            route_disp = pending_booking.get("route_name", cust_data.loai_visa or "Nha Trang ⇄ Lào Bờ Y (90 Ngày)")
+            date_val = pending_booking.get("date_val", cust_data.ngay_khoi_hanh or "")
+            
+            members_vi = f"{adults} người lớn"
+            if kids_over9 > 0: members_vi += f" + {kids_over9} trẻ ≥ 9T"
+            if kids_under9 > 0: members_vi += f" + {kids_under9} trẻ < 9T"
+
+            members_ru = f"{adults} взр."
+            if kids_over9 > 0: members_ru += f" + {kids_over9} детей ≥ 9 лет"
+            if kids_under9 > 0: members_ru += f" + {kids_under9} детей < 9 лет"
+
+            members_en = f"{adults} adults"
+            if kids_over9 > 0: members_en += f" + {kids_over9} kids ≥ 9yo"
+            if kids_under9 > 0: members_en += f" + {kids_under9} kids < 9yo"
+            
+            memory_store.pop(f"{session_id}_pending_seats", None)
+        else:
+            seat_str = valid_found_seats[0]
+            cust_data.ghe_chon = seat_str
+            route_disp = cust_data.loai_visa or "Nha Trang ⇄ Lào Bờ Y (90 Ngày)"
+            date_val = cust_data.ngay_khoi_hanh or datetime.now().strftime("%d/%m")
+            grand_total = 4000000 if "90" in route_disp else 1400000
+            members_vi = "1 người lớn"
+            members_ru = "1 взр."
+            members_en = "1 adult"
+
+        # Soạn tin nhắn Final Booking chính thức
+        if lang == "ru":
+            final_booking_msg = (
+                f"🎉 **ОФИЦИАЛЬНОЕ ПОДТВЕРЖДЕНИЕ БРОНИРОВАНИЯ (FINAL BOOKING)**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Представитель:** {user_disp}\n"
+                f"📍 **Маршрут:** {route_disp}\n"
+                f"📅 **Дата выезда:** {date_val}\n"
+                f"💺 **Выбранные места:** **{seat_str}**\n"
+                f"👥 **Состав:** {members_ru}\n"
+                f"💰 **ИТОГО К ОПЛАТЕ:** **{grand_total:,.0f} VND**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                + get_payment_instruction_text(lang)
+            )
+        elif lang == "vi":
+            final_booking_msg = (
+                f"🎉 **XÁC NHẬN GIỮ CHỖ CHÍNH THỨC (FINAL BOOKING)**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Đại diện:** {user_disp}\n"
+                f"📍 **Tuyến:** {route_disp}\n"
+                f"📅 **Ngày khởi hành:** {date_val}\n"
+                f"💺 **Vị trí ghế đã chốt:** **{seat_str}**\n"
+                f"👥 **Thành viên:** {members_vi}\n"
+                f"💰 **TỔNG CỘNG THANH TOÁN:** **{grand_total:,.0f} VND**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                + get_payment_instruction_text(lang)
+            )
+        else:
+            final_booking_msg = (
+                f"🎉 **OFFICIAL BOOKING CONFIRMATION (FINAL BOOKING)**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 **Representative:** {user_disp}\n"
+                f"📍 **Route:** {route_disp}\n"
+                f"📅 **Departure Date:** {date_val}\n"
+                f"💺 **Confirmed Seats:** **{seat_str}**\n"
+                f"👥 **Passengers:** {members_en}\n"
+                f"💰 **TOTAL PAYMENT:** **{grand_total:,.0f} VND**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                + get_payment_instruction_text(lang)
+            )
+
+        pay_kb = get_payment_methods_keyboard(lang)
+        await send_step_reply(update, context, final_booking_msg, reply_markup=pay_kb, parse_mode="Markdown")
+
+        # Gửi kèm ảnh QR thanh toán nếu có
+        if os.path.exists("qr_code.jpg"):
+            try:
+                with open("qr_code.jpg", "rb") as qr_f:
+                    if conn_id:
+                        await context.bot.send_photo(chat_id=target_chat_id, photo=qr_f, caption="💳 Easy Trip & Visa Banking QR Code", business_connection_id=conn_id)
+                    elif target_msg:
+                        await target_msg.reply_photo(photo=qr_f, caption="💳 Easy Trip & Visa Banking QR Code")
+            except Exception as e_qr:
+                print(f"⚠️ Gửi QR code thất bại: {e_qr}")
+
+        # Báo ngay vào Admin Group
+        admin_final_alert = (
+            f"🎉 **KHÁCH ĐÃ CHỐT GHẾ (FINAL BOOKING)!**\n"
+            f"👤 Đại diện: {user_disp}\n"
+            f"📍 Tuyến: {route_disp}\n"
+            f"📅 Ngày đi: {date_val}\n"
+            f"💺 Ghế đã chốt: {seat_str}\n"
+            f"👥 Thành viên: {members_vi}\n"
+            f"💰 Tổng tiền thanh toán: {grand_total:,.0f} VND\n"
+            f"👉 ĐÃ GỬI THÔNG TIN VÀ NÚT BẤM THANH TOÁN CHO KHÁCH!"
+        )
+        await send_to_admin_group(context, admin_final_alert)
+
+        # Gửi thông tin vào Topic đối tác
+        reg_cmd = f"📌 ĐẶT CHỖ: {u_name} - Ghế {seat_str} ({date_val} {route_disp})"
+        await send_to_bus_group(context, reg_cmd, date=date_val)
+        return
+
+    # ─── BƯỚC THÔNG MINH: NHẬN DIỆN Ý ĐỊNH & TỰ GỢI Ý QUY TRÌNH NÚT BẤM TƯƠNG ỨNG ───
+    incoming_intent = analyze_customer_incoming_message(text)
+    intent_action = incoming_intent.get("action")
+    detected_lang = incoming_intent.get("lang", "ru")
+    if detected_lang:
+        memory_store[f"{session_id}_lang"] = detected_lang
+
+    # A. Khách gửi lời chào từ Web / Telegram (/start, hi easytrip, здравствуйте, xin chào...)
+    if intent_action == "greeting":
+        memory_store[session_id] = []
+        memory_store.pop(f"{session_id}_data", None)
+        welcome_msgs = {
+            "ru": (
+                "👋 **Здравствуйте! Добро пожаловать в Easy Trip & Visa!** 🚌✨\n\n"
+                "Мы помогаем организовать комфортный визаран и оформление виз во Вьетнаме (Камбоджа, Лаос, E-Visa, VIP Fast Track).\n\n"
+                "👉 Шаг 1: Пожалуйста, выберите ваше гражданство ниже (или напишите название вашей страны в чат):"
+            ),
+            "en": (
+                "👋 **Hello and welcome to Easy Trip & Visa!** 🚌✨\n\n"
+                "We provide professional Visa Run and Vietnam Visa services (Cambodia, Laos, E-Visa, VIP Fast Track).\n\n"
+                "👉 Step 1: Please select your nationality below (or type your country in this chat):"
+            ),
+            "vi": (
+                "👋 **Xin chào! Chào mừng bạn đến với Easy Trip & Visa!** 🚌✨\n\n"
+                "Chúng tôi chuyên xe buýt Visarun và dịch vụ thị thực Việt Nam (Campuchia, Lào, E-Visa, Fast Track).\n\n"
+                "👉 Bước 1: Vui lòng chọn Quốc tịch của bạn bên dưới (hoặc gõ tên quốc gia vào khung chat):"
+            )
+        }
+        await send_step_reply(
+            update,
+            context,
+            welcome_msgs.get(detected_lang, welcome_msgs["ru"]),
+            reply_markup=get_nationality_keyboard()
+        )
+        return
+
+    # B. Khách chuyển tiếp từ Website (chọn tuyến / điểm xuất phát trên web)
+    if intent_action == "web_lead":
+        c_code = incoming_intent.get("city", "nhatrang")
+        c_disp = CITY_OPTIONS.get(c_code, {}).get(f"name_{detected_lang}", c_code.upper())
+        svc_name = incoming_intent.get("service_name", "")
+        
+        cust_data = CustomerData()
+        cust_data.thanh_pho = c_code
+        cust_data.loai_visa = svc_name
+        memory_store[f"{session_id}_data"] = cust_data
+        memory_store[f"{session_id}_lang"] = detected_lang
+        
+        lead_msgs = {
+            "ru": (
+                f"👋 Здравствуйте! Спасибо за обращение с сайта Easy Trip & Visa! 🚌✨\n\n"
+                f"📍 Мы зафиксировали ваш предварительный выбор:\n"
+                f"• Город отправления: {c_disp}\n"
+                f"• Направление: {svc_name}\n\n"
+                "👉 Шаг 1: Пожалуйста, выберите ваше гражданство ниже (чтобы бот проверил безвизовый въезд и сразу открыл календарь дат):"
+            ),
+            "en": (
+                f"👋 Hello! Thank you for contacting Easy Trip & Visa from our website! 🚌✨\n\n"
+                f"📍 We received your booking selection:\n"
+                f"• Departure City: {c_disp}\n"
+                f"• Service: {svc_name}\n\n"
+                "👉 Step 1: Please select your nationality below (to verify visa-free eligibility and open departure dates):"
+            ),
+            "vi": (
+                f"👋 Xin chào! Cảm ơn bạn đã liên hệ từ website Easy Trip & Visa! 🚌✨\n\n"
+                f"📍 Yêu cầu bạn vừa chọn:\n"
+                f"• Điểm xuất phát: {c_disp}\n"
+                f"• Tuyến dịch vụ: {svc_name}\n\n"
+                "👉 Bước 1: Vui lòng chọn Quốc tịch của bạn bên dưới (để bot kiểm tra điều kiện miễn thị thực và mở lịch khởi hành):"
+            )
+        }
+        await send_step_reply(
+            update,
+            context,
+            lead_msgs.get(detected_lang, lead_msgs["ru"]),
+            reply_markup=get_nationality_keyboard()
+        )
+        return
+
+    # C. Khách yêu cầu tư vấn chuyên viên riêng (Overstay, TRC, Work permit, Family visa)
+    if intent_action == "special_agent":
+        await handle_step_callback(
+            update,
+            context,
+            ["step", "agent", incoming_intent["topic"]],
+            process_customer_text_message
+        )
+        return
+
+    # D. Khách yêu cầu dịch vụ đặc biệt (Fast Track, Urgent E-Visa)
+    if intent_action == "special_service":
+        await handle_step_callback(
+            update,
+            context,
+            ["step", "svc", incoming_intent["service_id"]],
+            process_customer_text_message
+        )
+        return
+
+    # 1. Nhận diện nếu khách đang trả lời tên quốc gia (hoặc bấm Other Country)
+    c_res = identify_country(text) if (memory_store.get(f"{session_id}_waiting_country") or len(text.split()) <= 4) else None
+    if memory_store.get(f"{session_id}_waiting_country") or c_res:
+        if c_res:
+            cname, lang = c_res
+        else:
+            cname, lang = text.strip().title(), "en"
+            
+        cust_data = memory_store.get(f"{session_id}_data")
+        if not cust_data or not isinstance(cust_data, CustomerData):
+            cust_data = CustomerData()
+            memory_store[f"{session_id}_data"] = cust_data
+        cust_data.quoc_tich = cname
+        memory_store[f"{session_id}_lang"] = lang
+        memory_store[f"{session_id}_waiting_country"] = False
+        
+        # Nếu đã có sẵn thành phố từ Web Lead (VD: Mũi Né) -> Chuyển ngay sang Lịch Quốc Tế
+        if cust_data.thanh_pho and cust_data.thanh_pho in CITY_OPTIONS and cust_data.thanh_pho != "other":
+            now = datetime.now()
+            c_name_disp = CITY_OPTIONS[cust_data.thanh_pho].get(f"name_{lang}", cust_data.thanh_pho.upper())
+            cal_prompts = {
+                "ru": f"✅ Гражданство: **{cname}**\n📍 Город отправления: **{c_name_disp}**\n\n📅 **Выберите дату выезда в календаре**:",
+                "en": f"✅ Nationality: **{cname}**\n📍 Departure City: **{c_name_disp}**\n\n📅 **Please pick a departure date on the calendar**:",
+                "vi": f"✅ Quốc tịch: **{cname}**\n📍 Thành phố xuất phát: **{c_name_disp}**\n\n📅 **Vui lòng chọn ngày khởi hành trên lịch**:"
+            }
+            kb_cal = get_calendar_keyboard(now.year, now.month, lang)
+            await send_step_reply(update, context, cal_prompts.get(lang, cal_prompts["en"]), reply_markup=kb_cal)
+            return
+
+        city_prompts = {
+            "ru": f"✅ Гражданство: **{cname}**\n\n📍 **В каком городе Вьетнама вы сейчас находитесь?**\n(Или выберите 'За рубежом', если только планируете въезд):",
+            "en": f"✅ Nationality: **{cname}**\n\n📍 **Which city in Vietnam are you currently staying in?**\n(Or select 'Currently Abroad' if you are planning to enter):",
+            "vi": f"✅ Quốc gia: **{cname}**\n\n📍 **Bạn hiện đang ở thành phố nào tại Việt Nam?**\n(Hoặc chọn 'Đang ở nước ngoài' nếu sắp bay vào VN):"
+        }
+        kb = get_city_keyboard(lang)
+        await send_step_reply(update, context, city_prompts.get(lang, city_prompts["en"]), reply_markup=kb)
+        return
+
+    # 2. Nhận diện nếu khách đang nhập thành phố khác
+    if memory_store.get(f"{session_id}_waiting_other_city"):
+        cust_data = memory_store.get(f"{session_id}_data")
+        if not cust_data or not isinstance(cust_data, CustomerData):
+            cust_data = CustomerData()
+            memory_store[f"{session_id}_data"] = cust_data
+        cust_data.thanh_pho = text.strip()
+        memory_store[f"{session_id}_waiting_other_city"] = False
+        lang = memory_store.get(f"{session_id}_lang", "en")
+        
+        now = datetime.now()
+        cal_prompts = {
+            "ru": f"✅ Ваш город: **{text.strip()}** (Наш менеджер свяжется для подбора трансфера!)\n\n📅 **Выберите дату в календаре**:",
+            "en": f"✅ Your city: **{text.strip()}** (We will arrange the nearest pickup transfer!)\n\n📅 **Please pick a date on the calendar**:",
+            "vi": f"✅ Điểm của bạn: **{text.strip()}** (Đội ngũ sẽ tư vấn tuyến đón thuận tiện nhất!)\n\n📅 **Vui lòng chọn ngày trên lịch**:"
+        }
+        kb = get_calendar_keyboard(now.year, now.month, lang)
+        await send_step_reply(update, context, cal_prompts.get(lang, cal_prompts["en"]), reply_markup=kb)
+        return
+
+    # Kiểm tra chế độ Bot (Ưu tiên chế độ riêng của phiên, nếu chưa đặt thì lấy chế độ toàn hệ thống)
+    global_mode = memory_store.get("GLOBAL_BOT_MODE", os.getenv("DEFAULT_BOT_MODE", "auto"))
+    session_mode = memory_store.get(f"{session_id}_mode")
+    mode = session_mode if session_mode is not None else global_mode
+    platform_label = "Telegram Business" if (getattr(update, "business_message", None) or getattr(update, "edited_business_message", None)) else "Telegram"
+    display_user_name = update.effective_user.full_name if update.effective_user else None
+
+    if mode in ["manual", "off"]:
+        # Chế độ thủ công / tắt bot, chỉ ghi nhận tin nhắn, không trả lời tự động
+        print(f"⏸️ [Telegram Bot Paused/Manual] Bỏ qua trả lời tự động cho {session_id} (Mode: {mode})")
+        memory_store[session_id].append({"role": "user", "content": text})
+        await notify_admin_incoming_message(
+            platform=platform_label,
+            user_id=user_id,
+            user_text=text,
+            session_id=session_id,
+            user_name=display_user_name,
+            mode=mode
+        )
+        return
+        
+    # Lấy trạng thái trước đó và thông tin sơ đồ ghế hiện tại để AI không bao giờ quên hoặc chọn ghế đã kín (màu vàng)
+    prev_data = memory_store.get(f"{session_id}_data")
+    prev_seat = getattr(prev_data, "ghe_chon", None) if prev_data else None
+    seat_map_info = memory_store.get(f"{session_id}_seat_map_info") or latest_seat_maps.get("latest")
+
+    if mode == "copilot":
+        # Chế độ Co-pilot, tạo tin nhắn nháp và thông báo cho admin duyệt
+        memory_store[session_id].append({"role": "user", "content": text})
+        try:
+            ai_response = await process_chat(
+                memory_store[session_id],
+                customer_profile=cust_profile,
+                saved_data=prev_data,
+                seat_map_info=seat_map_info
+            )
+            reply = ai_response.reply_message
+            memory_store[f"{session_id}_draft"] = reply
+            memory_store[f"{session_id}_draft_data"] = ai_response.extracted_data
+            memory_store[f"{session_id}_draft_phase"] = ai_response.current_phase
+            
+            # Gửi tin nhắn thông báo tập trung cho Admin
+            await notify_admin_incoming_message(
+                platform=platform_label,
+                user_id=user_id,
+                user_text=text,
+                session_id=session_id,
+                user_name=display_user_name,
+                bot_reply=reply,
+                mode=mode
+            )
+        except Exception as e:
+            print("Lỗi tạo bản nháp Co-Pilot Telegram:", e)
+        return
+
+    memory_store[session_id].append({"role": "user", "content": text})
+
+    # Gọi AI Agent kèm hồ sơ khách cũ, dữ liệu đã lưu và trạng thái sơ đồ ghế
+    ai_response = await process_chat(
+        memory_store[session_id],
+        customer_profile=cust_profile,
+        saved_data=prev_data,
+        seat_map_info=seat_map_info
+    )
+    reply = ai_response.reply_message
+    memory_store[session_id].append({"role": "assistant", "content": reply})
+    log_message(user_id, "Telegram", "Bot", reply, customer_id=cust_id)
+    
+    target_msg: Any = update.message or update.business_message or (update.callback_query.message if update.callback_query else None)
+    conn_id = update.business_message.business_connection_id if update.business_message else memory_store.get(f"{session_id}_business_connection_id")
+    target_chat_id = update.effective_chat.id if update.effective_chat else int(user_id)
+    
+    try:
+        if conn_id:
+            await context.bot.send_message(chat_id=target_chat_id, text=reply, business_connection_id=conn_id)  # type: ignore
+        elif target_msg:
+            await target_msg.reply_text(reply)
+        else:
+            await context.bot.send_message(chat_id=target_chat_id, text=reply)
+    except Exception as e_send:
+        print(f"⚠️ Lỗi gửi tin nhắn chính, chuyển sang fallback send_message: {e_send}")
+        try:
+            if conn_id:
+                await context.bot.send_message(chat_id=target_chat_id, text=reply, business_connection_id=conn_id)  # type: ignore
+            else:
+                await context.bot.send_message(chat_id=target_chat_id, text=reply)
+        except Exception as e_direct:
+            print(f"❌ Fallback send_message thất bại: {e_direct}")
+
+    # Gửi thông báo cho Admin về tin nhắn mới và phản hồi tự động
+    await notify_admin_incoming_message(
+        platform=platform_label,
+        user_id=user_id,
+        user_text=text,
+        session_id=session_id,
+        user_name=display_user_name,
+        bot_reply=reply,
+        mode=mode
+    )
+
+    # ℹ️ Sơ đồ ghế được xử lý đúng ở bước get_or_create_seat_map bên dưới
+    # (dùng sơ đồ thực từ nhà xe nếu có, hoặc tự tạo trống nếu chưa có)
+
+    data = ai_response.extracted_data
+    memory_store[f"{session_id}_data"] = data
+
+    # Tự động cập nhật hồ sơ khách hàng vào Database SQLite
+    if cust_id:
+        profile_updates = {}
+        if getattr(data, "ho_ten", None): profile_updates["full_name"] = data.ho_ten
+        if getattr(data, "quoc_tich", None): profile_updates["nationality"] = data.quoc_tich
+        if getattr(data, "so_dien_thoai", None):
+            profile_updates["phone_number"] = str(data.so_dien_thoai)
+            customer_memory.link_platform_by_phone(str(data.so_dien_thoai), "telegram", str(user_id))
+        if getattr(data, "ghe_chon", None): profile_updates["preferred_seat"] = data.ghe_chon
+        if getattr(data, "diem_don", None): profile_updates["preferred_pickup"] = data.diem_don
+        if getattr(data, "ngay_het_han_visa", None): profile_updates["visa_expiry_date"] = data.ngay_het_han_visa
+        if profile_updates:
+            customer_memory.update_customer_profile(cust_id, **profile_updates)
+
+    # Tự động báo Admin Group khi khách nói đã chuyển tiền / thanh toán
+    text_lower = text.lower()
+    payment_keywords = ["paid", "thanh toan", "chuyen tien", "chuyển tiền", "đã ck", "da ck", "sent money", "оплатил", "оплата", "перевел", "bill", "chuyển khoản", "chuyen khoan"]
+    if any(kw in text_lower for kw in payment_keywords):
+        admin_pay_msg = (
+            f"💸 <b>KHÁCH BÁO ĐÃ CHUYỂN TIỀN KÌA BẠN ƠI!</b>\n\n"
+            f"👤 <b>Khách iu:</b> {getattr(data, 'ho_ten', 'Khách hàng')} ({getattr(data, 'quoc_tich', '')})\n"
+            f"📞 <b>SĐT:</b> {getattr(data, 'so_dien_thoai', 'Chưa rõ')}\n"
+            f"💬 <b>Khách vừa bảo:</b> <i>\"{text}\"</i>\n\n"
+            f"👉 <i>Mau check tài khoản xem ting ting chưa nha bạn ơi!</i>"
+        )
+        await send_to_admin_group(context, admin_pay_msg)
+
+    # Xác định ngày đi và loại dịch vụ của khách
+    user_only_text = " ".join([m.get("content", "") for m in memory_store.get(session_id, []) if isinstance(m, dict) and m.get("role") == "user"])
+    service_type = get_customer_service_type(data, user_only_text=user_only_text)
+    
+    dest = "cambodia" if service_type == "Cambodia" else "laos"
+    ngay_di = validate_and_adjust_departure(data.ngay_khoi_hanh or "", data.ngay_het_han_visa or "", data.loai_visa or "", dest)
+    if ngay_di:
+        data.ngay_khoi_hanh = ngay_di
+
+    # --- 2. GỬI SCHEME KHI KHÁCH ĐÃ ĐẾN PHASE SEAT_SELECTION VÀ ĐÃ CHỐT TUYẾN XE ---
+    if ai_response.current_phase == "SEAT_SELECTION" and ngay_di and service_type in ["45D", "90D", "Cambodia"]:
+        now = time.time()
+        last_sent = scheme_history.get(f"{ngay_di}_{service_type}", 0)
+        if (now - last_sent) > 900:
+            scheme_cmd = get_scheme_command(ngay_di, service_type)
+            if scheme_cmd:
+                await send_to_bus_group(context, scheme_cmd, date=ngay_di, service=service_type)
+                scheme_history[f"{ngay_di}_{service_type}"] = now
+                print(f"🚀 Scheme sent: {scheme_cmd} (phase=SEAT_SELECTION, service={service_type})")
+
+    # --- 5. GỬI SƠ ĐỒ GHẾ ĐA NGÔN NGỮ ---
+    if ngay_di:
+        should_send_map = False
+        if ai_response.current_phase == "SEAT_SELECTION" and not getattr(data, "ghe_chon", None):
+            should_send_map = True
+        
+        user_text_lower = text.lower()
+        map_keywords = [
+            "sơ đồ", "seat map", "ghế trống", "sơ đồ ghế", "chọn ghế",
+            "seat selection", "select seat", "available seats",
+            "карта мест", "выбор места", "схема мест", "свободные места",
+            "좌석 배치도", "배치도"
+        ]
+        if any(kw in user_text_lower for kw in map_keywords):
+            should_send_map = True
+
+        if should_send_map:
+            map_data = await get_or_create_seat_map(ngay_di, service_type)
+            if map_data:
+                memory_store[f"{session_id}_seat_map_info"] = map_data
+                seat_map_info = map_data
+                lang = get_lang_code(getattr(data, "quoc_tich", "")) if data else "en"
+                caption = build_seat_map_caption(lang, ngay_di, service_type or "45D", map_data)
+                
+                if map_data.get("file_id"):
+                    if conn_id:
+                        await context.bot.send_photo(chat_id=target_chat_id, photo=map_data["file_id"], caption=caption, business_connection_id=conn_id)  # type: ignore
+                    elif target_msg:
+                        await target_msg.reply_photo(photo=map_data["file_id"], caption=caption)
+                elif os.path.exists(map_data["url"].lstrip("/")):
+                    with open(map_data["url"].lstrip("/"), "rb") as f:
+                        if conn_id:
+                            msg = await context.bot.send_photo(chat_id=target_chat_id, photo=f, caption=caption, business_connection_id=conn_id)  # type: ignore
+                        elif target_msg:
+                            msg = await target_msg.reply_photo(photo=f, caption=caption)
+                        else:
+                            msg = None
+                        if msg and msg.photo:
+                            map_data["file_id"] = msg.photo[-1].file_id
+                            latest_seat_maps[f"{ngay_di}_{service_type}"] = map_data
+
+    # --- 8. GỬI LỆNH ĐẶT GHẾ VÀO TOPIC ĐỐI TÁC KHI KHÁCH VỪA CHỌN GHẾ ---
+    curr_seat = (getattr(data, "ghe_chon", None) or "").strip().upper()
+    booked_on_map = set(s.upper() for s in (seat_map_info.get("booked_seats", []) if isinstance(seat_map_info, dict) else []))
+    if curr_seat and curr_seat != prev_seat and curr_seat in VALID_BUS_SEATS and curr_seat not in booked_on_map:
+        notif_key = f"{session_id}_bus_notified_{curr_seat}"
+        if not memory_store.get(notif_key):
+            lang = get_lang_code(getattr(data, "quoc_tich", "")) if data else "en"
+            if not getattr(data, "diem_don", None):
+                data.diem_don = "Oceanus"
+            
+            if os.path.exists("qr_code.jpg"):
+                with open("qr_code.jpg", "rb") as qr_f:
+                    if conn_id:
+                        await context.bot.send_photo(chat_id=target_chat_id, photo=qr_f, caption=get_msg("please_pay", lang), business_connection_id=conn_id)  # type: ignore
+                    elif target_msg:
+                        await target_msg.reply_photo(photo=qr_f, caption=get_msg("please_pay", lang))
+            
+            bus_msg = format_bus_booking_notification(data, ngay_di=ngay_di or "", service_type=service_type or "")
+            await send_to_bus_group(context, bus_msg, date=ngay_di, service=service_type)
+            memory_store[notif_key] = True
+            print(f"📢 Đã gửi tin nhắn đặt chỗ {curr_seat} vào topic đối tác!")
+
+    if (ai_response.is_complete or ai_response.current_phase == "COMPLETED") and not memory_store.get(f"{session_id}_completed"):
+        order_res = await create_order(data, channel="Telegram")
+        record_id = order_res.get("record_id")
+        memory_store[f"{session_id}_record_id"] = record_id
+        
+        # Lưu chuyến đi vào SQLite trip_history
+        if cust_id:
+            try:
+                customer_memory.record_completed_trip(
+                    customer_id=cust_id,
+                    departure_date=ngay_di or data.ngay_khoi_hanh or datetime.now().strftime("%d/%m"),
+                    route=service_type,
+                    visa_type=data.loai_visa,
+                    seat_number=data.ghe_chon,
+                    pickup_location=data.diem_don,
+                    price_paid=4000000 if service_type == "Cambodia" else 2000000,
+                    order_id=record_id
+                )
+            except Exception as e_trip:
+                print(f"⚠️ Lỗi lưu trip_history vào SQLite: {e_trip}")
+
+        import random
+        ORDER_GREETINGS = [
+            "🎉 <b>NỔ ĐƠN KÌA BẠN ƠI! TING TING!</b> 💸",
+            "🚀 <b>BÙM! LẠI NỔ ĐƠN MỚI RỒI BẠN ÊI!</b> 🔥",
+            "🔥 <b>LÚA VỀ LÚA VỀ! CÓ ĐƠN MỚI TOANH NÈ!</b> 💰"
+        ]
+        order_head = random.choice(ORDER_GREETINGS)
+        order_notif = (
+            f"{order_head}\n\n"
+            f"👤 <b>Khách iu:</b> {data.ho_ten or 'Khách hàng'}\n"
+            f"🚌 <b>Tuyến:</b> {service_type} ({data.loai_visa or ''})\n"
+            f"📅 <b>Ngày đi:</b> {ngay_di or ''}\n"
+            f"💺 <b>Ghế & Đón:</b> Ghế {data.ghe_chon or ''} | Điểm đón: {data.diem_don or 'Oceanus'}\n"
+            f"💰 <b>Lúa thu:</b> {4000000 if service_type == 'Cambodia' else 2000000:,} VND\n\n"
+            f"👉 <i>Đã chốt xong xuôi, bạn vào việc tiếp nhé người anh em!</i>"
+        )
+        await send_to_admin_group(context, order_notif)
+        memory_store[f"{session_id}_completed"] = True
+
+# ============================================================
+# HANDLER: XỬ LÝ TIN NHẮN VĂN BẢN (CHÍNH THỨC)
+# ============================================================
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat:
+        return
+    chat_id = str(update.effective_chat.id)
+    message: Any = update.message or update.business_message or (update.edited_business_message if update.edited_business_message else None)
+    if not message:
+        return
+    text = message.text or ""
+
+    session_id = f"telegram_{chat_id}"
+    if update.business_message:
+        memory_store[f"{session_id}_business_connection_id"] = update.business_message.business_connection_id
+    elif getattr(update, "edited_business_message", None):
+        memory_store[f"{session_id}_business_connection_id"] = getattr(update.edited_business_message, "business_connection_id", None)
+
+    try:
+        # ----- ADMIN COMMANDS (Reply to message) -----
+        if (chat_id == ADMIN_TELEGRAM_ID or update.effective_chat.type in ["group", "supergroup"]) and message.reply_to_message:
+            cmd_text = text.lower().strip()
+            reply_text = message.reply_to_message.text or ""
+            
+            if "full" in cmd_text or "hết chỗ" in cmd_text:
+                target_session_id = None
+                sid_match = re.search(r"#sid:([\w\d_]+)", reply_text)
+                if sid_match: target_session_id = sid_match.group(1)
+                
+                if not target_session_id:
+                    date_match = re.search(r"(\d{1,2}/\d{1,2})", reply_text)
+                    target_date = date_match.group(1) if date_match else None
+                    for key, val in memory_store.items():
+                        if key.endswith("_data") and hasattr(val, "ngay_khoi_hanh"):
+                            if target_date and normalize_date(val.ngay_khoi_hanh) == normalize_date(target_date):
+                                target_session_id = key.replace("_data", "")
+                                break
+                
+                if target_session_id:
+                    data = memory_store.get(f"{target_session_id}_data")
+                    visa_expiry = getattr(data, "ngay_het_han_visa", None) if data else None
+                    suggested_dates_str = "the next few days"
+                    date_match_rep = re.search(r"(\d{1,2}/\d{1,2})", reply_text)
+                    t_date = date_match_rep.group(1) if date_match_rep else ""
+                    
+                    if visa_expiry:
+                        try:
+                            from datetime import datetime, timedelta
+                            exp_dt = None
+                            for fmt in ["%d/%m/%Y", "%d/%m/%y", "%d/%m"]:
+                                try:
+                                    exp_dt = datetime.strptime(visa_expiry, fmt)
+                                    if "%Y" not in fmt and "%y" not in fmt: exp_dt = exp_dt.replace(year=datetime.now().year)
+                                    break
+                                except: continue
+                            if exp_dt:
+                                start_dt = datetime.now() + timedelta(days=1)
+                                end_dt = exp_dt - timedelta(days=1)
+                                dates = []
+                                curr = start_dt
+                                while curr <= end_dt and len(dates) < 3:
+                                    if curr.strftime("%d/%m") != normalize_date(t_date): dates.append(curr.strftime("%d/%m"))
+                                    curr += timedelta(days=1)
+                                if dates: suggested_dates_str = ", ".join(dates)
+                        except: pass
+
+                    nationality = getattr(data, 'quoc_tich', 'Unknown')
+                    ai_prompt = (
+                        f"CONTEXT: The bus trip on {t_date} is FULL. Notify the customer.\n"
+                        f"CUSTOMER: {nationality}, Name: {getattr(data, 'ho_ten', 'Customer')}.\n"
+                        f"INSTRUCTION: Write a polite notification in the customer's NATIVE LANGUAGE.\n"
+                        f"CONTENT: Apologize that {t_date} is full. Suggest: {suggested_dates_str}.\n"
+                        f"Mention ONLY pickup at Oceanus (https://maps.app.goo.gl/y8DjaoCNDsRyZN9B8)."
+                    )
+                    ai_res = await process_chat([{"role": "system", "content": ai_prompt}])
+                    msg = ai_res.reply_message
+                    platform = "Telegram" if "telegram_" in target_session_id else "Zalo" if "zalo_" in target_session_id else "Website"
+                    uid = target_session_id.split("_")[1]
+                    if platform == "Telegram":
+                        conn_id = memory_store.get(f"{target_session_id}_business_connection_id")
+                        await context.bot.send_message(chat_id=uid, text=msg, business_connection_id=conn_id)
+                    elif platform == "Zalo": 
+                        from main import send_zalo_message
+                        await send_zalo_message(uid, msg)
+                    
+                    name = getattr(data, "ho_ten", "khách") if data else "khách"
+                    await message.reply_text(f"✅ Đã báo {name} ({nationality}) bằng tiếng bản địa.\nGợi ý: {suggested_dates_str}")
+                else: await message.reply_text("⚠️ Không tìm thấy khách.")
+                return
+
+        # ----- ADMIN DIRECT COMMANDS -----
+        if chat_id == ADMIN_TELEGRAM_ID and text.lower().startswith("xác nhận thanh toán"):
+            parts = text.split(" ", 2)
+            customer_name = parts[2].strip() if len(parts) > 2 else ""
+            client_session_key = None
+            for key, val in memory_store.items():
+                if key.endswith("_data") and hasattr(val, "ho_ten") and val.ho_ten and customer_name.lower() in val.ho_ten.lower():
+                    client_session_key = key.replace("_data", "")
+                    break
+            if client_session_key:
+                session_data = memory_store.get(f"{client_session_key}_data")
+                uid = client_session_key.replace("telegram_", "")
+                if session_data:
+                    ho_ten = getattr(session_data, "ho_ten", "")
+                    ghe_chon = getattr(session_data, "ghe_chon", "")
+                    ngay_kh = getattr(session_data, "ngay_khoi_hanh", "")
+                    reg_cmd = f"✅ ĐÃ THANH TOÁN\n{ho_ten} - {ghe_chon}"
+                    await send_to_bus_group(context, reg_cmd, date=ngay_kh)
+                if "telegram_" in client_session_key: 
+                    data = memory_store.get(f"{client_session_key}_data")
+                    lang = get_lang_code(getattr(data, "quoc_tich", "")) if data else "en"
+                    conn_id = memory_store.get(f"{client_session_key}_business_connection_id")
+                    await context.bot.send_message(chat_id=uid, text=get_msg("payment_confirmed", lang), business_connection_id=conn_id)  # type: ignore
+                await message.reply_text(f"Đã xử lý thanh toán cho {customer_name}")
+            return
+
+        # ----- BUS GROUP HANDLER (Hỗ trợ cả nhóm chính và nhóm TESTBOT) -----
+        if update.effective_chat.type in ["group", "supergroup"]:
+            memory_store["LAST_ACTIVE_GROUP_ID"] = chat_id
+            eff_msg = update.effective_message
+            thread_id = eff_msg.message_thread_id if eff_msg else None
+            
+            # 1. HỖ TRỢ LỆNH /link <ngày> <loại hình>
+            if text.startswith("/link"):
+                parts = text.split()
+                if len(parts) >= 3:
+                    target_date = normalize_date(parts[1])
+                    target_service = parts[2].upper()
+                    # Chuẩn hóa loại hình
+                    if "90" in target_service: target_service = "90D"
+                    elif "CAMBODIA" in target_service or "CAMP" in target_service: target_service = "Cambodia"
+                    else: target_service = "45D"
+                    
+                    key = f"{target_date}_{target_service}"
+                    date_to_topic_id_map[key] = thread_id
+                    
+                    # Save to file
+                    try:
+                        with open(TOPIC_MAP_FILE, "w") as f:
+                            json.dump(date_to_topic_id_map, f)
+                    except Exception as e:
+                        print("Lỗi save topic_map.json:", e)
+                        
+                    await message.reply_text(f"✅ Đã liên kết topic này với khóa: `{key}`!", parse_mode="Markdown")
+                else:
+                    await message.reply_text("⚠️ Hướng dẫn sử dụng: `/link <ngày> <dịch vụ>`\nVí dụ: `/link 20/05 Cambodia` hoặc `/link 20/05 45D`")
+                return
+
+            # Tự động parse ngày + dịch vụ khi admin tạo topic mới
+            if eff_msg and getattr(eff_msg, "forum_topic_created", None):
+                topic_name = getattr(eff_msg.forum_topic_created, "name", "")
+                t_date, t_service = parse_topic_name(topic_name)
+                if t_date and t_service:
+                    key = f"{t_date}_{t_service}"
+                    date_to_topic_id_map[key] = thread_id
+                    try:
+                        with open(TOPIC_MAP_FILE, "w") as f:
+                            json.dump(date_to_topic_id_map, f)
+                    except Exception as e:
+                        print("Lỗi save topic_map.json:", e)
+                    print(f"📌 Tự động liên kết Topic: {topic_name} -> {key}")
+
+            # Tìm xem topic này thuộc về Ngày + Dịch vụ nào (tự động đăng ký động nếu thiếu)
+            bot_instance = context.bot if context else tg_app.bot
+            key = await get_or_register_topic_key(bot_instance, thread_id) if thread_id is not None else None
+            
+            # Tách ghế (e.g. A1, B2)
+            seat_pattern = r"\b[AB]\d{1,2}\b"
+            seats_found = re.findall(seat_pattern, text.upper())
+            
+            if seats_found and key:
+                parts_key = key.split("_")
+                ngay = parts_key[0]
+                service = parts_key[1] if len(parts_key) > 1 else "45D"
+                
+                text_lower = text.lower()
+                is_empty_list = True # Mặc định là ghế trống
+                if "hết" in text_lower or "đặt" in text_lower or "đã bán" in text_lower:
+                    is_empty_list = False
+                
+                valid_seats = set(RELATIVE_COORDINATES.keys())
+                found_set = set(seats_found) & valid_seats
+                
+                if found_set:
+                    if is_empty_list:
+                        booked_seats = valid_seats - found_set
+                    else:
+                        booked_seats = found_set
+                        
+                    output_file = f"static/map_{ngay.replace('/', '_')}_{service}.jpg"
+                    generate_seat_map(list(booked_seats), output_path=output_file)
+                    seat_analysis = analyze_seat_map_image(output_file)
+                    
+                    with open(output_file, "rb") as f:
+                        msg = await context.bot.send_photo(
+                            chat_id=chat_id,
+                            photo=f,
+                            caption=f"✅ Đã cập nhật sơ đồ ngày {ngay} - {service}!",
+                            message_thread_id=thread_id
+                        )
+                    
+                    map_data = {
+                        "file_id": msg.photo[-1].file_id,
+                        "url": f"/static/map_{ngay.replace('/', '_')}_{service}.jpg",
+                        "booked_seats": sorted(list(booked_seats)),
+                        "available_seats": [s for s in (LOWER_DECK_SEATS + UPPER_DECK_SEATS) if s not in booked_seats],
+                        "lower_available": [s for s in LOWER_DECK_SEATS if s not in booked_seats],
+                        "upper_available": [s for s in UPPER_DECK_SEATS if s not in booked_seats],
+                    }
+                    latest_seat_maps[key] = map_data
+                    latest_seat_maps[ngay] = map_data
+                    latest_seat_maps["latest"] = map_data
+                    print(f"Sơ đồ {key} đã được cập nhật thành công!")
+            return
+
+        # ----- CUSTOMER FLOW -----
+        if not update.effective_chat or update.effective_chat.type != "private" or not update.effective_user:
+            return
+        # Trong Telegram Business: nếu người gửi (from_user.id) khác với chat.id của khách, nghĩa là chủ tài khoản EASYTRIP visa đang tự nhắn cho khách -> không tự động trả lời đè lên tin nhắn của chủ shop!
+        if (update.business_message or getattr(update, "edited_business_message", None)):
+            if message.from_user and message.chat and message.from_user.id != message.chat.id:
+                print(f"ℹ️ Bỏ qua tin nhắn do chính chủ tài khoản Business gửi trong chat {message.chat.id}")
+                return
+        user_id = str(update.effective_chat.id) if (update.business_message or getattr(update, "edited_business_message", None)) else str(update.effective_user.id)
+        await process_customer_text_message(update, context, user_id, text)
+
+    except Exception as e:
+        import traceback
+        error_msg = f"❌ ERROR IN HANDLE_TEXT: {e}"
+        print(error_msg)
+        traceback.print_exc()
+        # Notify Admin about the error
+        await send_to_admin_group(context, f"🔴 SYSTEM ERROR: {error_msg}")
+        
+        # Professional fallback for user
+        chat_id_val = update.effective_chat.id if update.effective_chat else "unknown"
+        session_id = f"telegram_{chat_id_val}"
+        data = memory_store.get(f"{session_id}_data")
+        lang = get_lang_code(getattr(data, "quoc_tich", "")) if data else "en"
+        conn_id = memory_store.get(f"{session_id}_business_connection_id")
+        if conn_id and update.effective_chat:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_msg("system_busy", lang), business_connection_id=conn_id)  # type: ignore
+        else:
+            await message.reply_text(get_msg("system_busy", lang))
+
+
+_easyocr_reader = None
+
+def get_ocr_reader():
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        try:
+            import easyocr
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
+            _easyocr_reader = easyocr.Reader(['en', 'ru'], gpu=False, verbose=False)
+        except Exception as e:
+            _easyocr_reader = False
+    return _easyocr_reader if _easyocr_reader is not False else None
+
+def prepare_image_bytes_for_ocr(image_path: str) -> bytes:
+    """Tự động nén và chuẩn hóa kích thước ảnh về < 800KB để Cloud OCR xử lý nhanh 1-2s và không bị quá dung lượng"""
+    try:
+        from PIL import Image
+        import io
+        with Image.open(image_path) as img:
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            max_dimension = 1600
+            if max(img.width, img.height) > max_dimension:
+                img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85, optimize=True)
+            return buf.getvalue()
+    except Exception as e:
+        print(f"⚠️ Image compression notice: {e}")
+        try:
+            with open(image_path, "rb") as f:
+                return f.read()
+        except Exception:
+            return b""
+
+
+async def extract_text_from_image(image_path: str) -> str:
+    """Trích xuất văn bản từ hình ảnh vé/tin nhắn bằng Cloud OCR xoay vòng nhiều key và EasyOCR fallback"""
+    # 1. Primary: Fast Cloud OCR xoay vòng nhiều Key (0 MB RAM, phản hồi nhanh 1-2s, chính xác cao)
+    ocr_keys = ['K88574768888957', 'K82846985488957', 'K83995874488957', 'helloworld']
+    try:
+        file_bytes = prepare_image_bytes_for_ocr(image_path)
+        if not file_bytes:
+            with open(image_path, 'rb') as f:
+                file_bytes = f.read()
+        
+        for key in ocr_keys:
+            try:
+                files = {'file': ('image.jpg', file_bytes, 'image/jpeg')}
+                data = {
+                    'apikey': key,
+                    'language': 'eng',
+                    'isOverlayRequired': False,
+                    'OCREngine': '2'
+                }
+                async with httpx.AsyncClient(timeout=8) as client:
+                    r = await client.post('https://api.ocr.space/parse/image', files=files, data=data)
+                    if r.status_code == 200:
+                        res = r.json()
+                        parsed = res.get('ParsedResults', [])
+                        if parsed:
+                            text = parsed[0].get('ParsedText', '')
+                            if text and len(text.strip()) > 3:
+                                return text
+            except Exception as e_k:
+                print(f"⚠️ OCR Key {key[:5]}... notice: {e_k}")
+                continue
+    except Exception as e:
+        print(f"⚠️ Cloud OCR general error: {e}")
+        
+    # 2. Secondary fallback: Local EasyOCR if available
+    try:
+        reader = get_ocr_reader()
+        if reader:
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(None, reader.readtext, image_path, 0)
+            return " \n".join(results)
+    except Exception as e:
+        print(f"⚠️ Local OCR Error: {e}")
+        
+    return ""
+
+
+# ============================================================
+# HANDLER: XỬ LÝ ẢNH
+# ============================================================
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.effective_chat:
+        return
+    chat_id = str(update.effective_chat.id)
+    message: Any = update.message or update.business_message
+    if not message:
+        return
+        
+    session_id = f"telegram_{chat_id}"
+    if update.business_message:
+        memory_store[f"{session_id}_business_connection_id"] = update.business_message.business_connection_id
+
+    try:
+        # ----- LUỒNG ĐỐI TÁC / ADMIN: GỬI SƠ ĐỒ GHẾ VÀO TOPIC HOẶC NHÓM (BAO GỒM TESTBOT) -----
+        is_group_or_admin = (
+            update.effective_chat.type in ["group", "supergroup"] 
+            or chat_id in [str(BUS_GROUP_CHAT_ID), str(ADMIN_GROUP_CHAT_ID), str(ADMIN_TELEGRAM_ID)]
+            or not BUS_GROUP_CHAT_ID
+        )
+        
+        if is_group_or_admin:
+            if update.effective_chat.type in ["group", "supergroup"]:
+                memory_store["LAST_ACTIVE_GROUP_ID"] = chat_id
+            eff_msg = update.effective_message
+            thread_id = eff_msg.message_thread_id if eff_msg else None
+            
+            ngay = None
+            service = "45D"  # Mặc định
+            explicit_service = False
+            
+            # 1. Thử parse từ caption của ảnh
+            caption = message.caption or ""
+            if caption:
+                p_date, p_serv = parse_topic_name(caption)
+                if p_date:
+                    ngay = p_date
+                    if p_serv:
+                        service = p_serv
+                        explicit_service = True
+            
+            # 2. Thử parse từ tin nhắn được Reply (Admin bấm Reply vào tin nhắn Scheme của bot)
+            reply_msg = eff_msg.reply_to_message if eff_msg else None
+            if not ngay and reply_msg:
+                reply_text = reply_msg.text or reply_msg.caption or ""
+                p_date, p_serv = parse_topic_name(reply_text)
+                if p_date:
+                    ngay = p_date
+                    if p_serv:
+                        service = p_serv
+                        explicit_service = True
+                elif reply_msg.message_id and f"msg_{reply_msg.message_id}" in recent_scheme_requests:
+                    r_info = recent_scheme_requests[f"msg_{reply_msg.message_id}"]
+                    ngay = r_info.get("date")
+                    service = r_info.get("service", "45D")
+                    explicit_service = True
+                elif getattr(reply_msg, "forum_topic_created", None):
+                    t_name = getattr(reply_msg.forum_topic_created, "name", "")
+                    p_date, p_serv = parse_topic_name(t_name)
+                    if p_date:
+                        ngay = p_date
+                        if p_serv:
+                            service = p_serv
+                            explicit_service = True
+                        
+            # 3. Thử tìm từ topic id hiện tại
+            if not ngay and thread_id is not None:
+                bot_instance = context.bot if context else tg_app.bot
+                linked_key = await get_or_register_topic_key(bot_instance, thread_id)
+                if linked_key:
+                    parts = linked_key.split("_")
+                    ngay = parts[0]
+                    if len(parts) > 1:
+                        service = parts[1]
+                        explicit_service = True
+                        
+            # 4. Thử tìm từ recent_scheme_requests (Yêu cầu scheme gần nhất trong vòng 4 giờ)
+            if not ngay:
+                latest_req = recent_scheme_requests.get("latest")
+                if latest_req and (time.time() - latest_req.get("timestamp", 0)) < 14400:
+                    ngay = latest_req.get("date")
+                    service = latest_req.get("service", "45D")
+                    print(f"📌 Nhận diện sơ đồ từ recent_scheme_requests: {ngay} ({service})")
+                    
+            # 5. Thử tìm từ khách hàng đang chờ sơ đồ trong memory_store (kể cả khi khách chỉ mới cung cấp ngày hết hạn visa)
+            if not ngay:
+                for k_sess, d_obj in reversed(list(memory_store.items())):
+                    if k_sess.endswith("_data") and not getattr(d_obj, "ghe_chon", None):
+                        c_ngay = normalize_date(getattr(d_obj, "ngay_khoi_hanh", "") or getattr(d_obj, "ngay_het_han_visa", ""))
+                        if c_ngay:
+                            ngay = c_ngay
+                            cust_hist = " ".join([m.get("content", "") for m in memory_store.get(k_sess.replace("_data", ""), []) if isinstance(m, dict)])
+                            service = get_customer_service_type(d_obj, history_text=cust_hist) or "45D"
+                            print(f"📌 Nhận diện sơ đồ từ khách hàng đang đợi {k_sess}: {ngay} ({service})")
+                            break
+
+            # 6. Fallback cuối cùng: tìm bất kỳ khách nào có ngày đi hoặc dùng ngày hiện tại để KHÔNG BAO GIỜ bỏ sót ảnh sơ đồ trong nhóm TESTBOT
+            if not ngay:
+                for k_sess, d_obj in reversed(list(memory_store.items())):
+                    if k_sess.endswith("_data"):
+                        c_ngay = normalize_date(getattr(d_obj, "ngay_khoi_hanh", "") or getattr(d_obj, "ngay_het_han_visa", ""))
+                        if c_ngay:
+                            ngay = c_ngay
+                            cust_hist = " ".join([m.get("content", "") for m in memory_store.get(k_sess.replace("_data", ""), []) if isinstance(m, dict)])
+                            service = get_customer_service_type(d_obj, history_text=cust_hist) or "45D"
+                            break
+                if not ngay:
+                    ngay = datetime.now().strftime("%d/%m")
+
+            if ngay:
+                os.makedirs("static", exist_ok=True)
+                media_obj = message.photo[-1] if getattr(message, "photo", None) else getattr(message, "document", None)
+                if not media_obj:
+                    return
+                photo_file = await media_obj.get_file()
+                
+                # Lưu dưới định dạng chuẩn có hậu tố _service (ví dụ: map_13_09_90D.jpg)
+                local_path = f"static/map_{ngay.replace('/', '_')}_{service}.jpg"
+                await photo_file.download_to_drive(local_path)
+                
+                # Lưu thêm bản fallback không có service
+                local_path_fallback = f"static/map_{ngay.replace('/', '_')}.jpg"
+                try:
+                    import shutil
+                    shutil.copyfile(local_path, local_path_fallback)
+                except Exception:
+                    pass
+                
+                # Phân tích tự động các ghế đã đánh dấu màu vàng (booked) và ghế trắng (available)
+                seat_analysis = analyze_seat_map_image(local_path)
+                booked_seats = seat_analysis.get("booked_seats", [])
+                avail_seats = seat_analysis.get("available_seats", [])
+                lower_avail = seat_analysis.get("lower_available", [])
+                upper_avail = seat_analysis.get("upper_available", [])
+                
+                file_id = message.photo[-1].file_id if getattr(message, "photo", None) else None
+                map_data = {
+                    "file_id": file_id, 
+                    "url": f"/static/map_{ngay.replace('/', '_')}_{service}.jpg",
+                    "booked_seats": booked_seats,
+                    "available_seats": avail_seats,
+                    "lower_available": lower_avail,
+                    "upper_available": upper_avail,
+                }
+                latest_seat_maps[f"{ngay}_{service}"] = map_data
+                latest_seat_maps[ngay] = map_data  # Fallback
+                latest_seat_maps["latest"] = map_data
+                
+                if thread_id is not None:
+                    date_to_topic_id_map[f"{ngay}_{service}"] = thread_id
+                    date_to_topic_id_map[ngay] = thread_id
+                    try:
+                        with open(TOPIC_MAP_FILE, "w") as f:
+                            json.dump(date_to_topic_id_map, f)
+                    except:
+                        pass
+                
+                domain = os.getenv("RENDER_EXTERNAL_URL", "https://chatbot-easytrip.onrender.com").rstrip("/")
+                image_url = f"{domain}/static/map_{ngay.replace('/', '_')}_{service}.jpg?t={int(datetime.now().timestamp())}"
+                
+                booked_str = ", ".join(booked_seats) if booked_seats else "Chưa có ghế bị đánh dấu"
+                avail_str = ", ".join(avail_seats) if avail_seats else "Hết ghế"
+                await message.reply_text(
+                    f"✅ Đã nhận & phân tích sơ đồ ngày {ngay} ({service})!\n"
+                    f"🟨 Ghế đã có người ngồi (đánh dấu vàng): {booked_str}\n"
+                    f"⬜ Ghế còn trống: {avail_str}\n"
+                    f"⏳ Đang tự động gửi sơ đồ cho khách hàng..."
+                )
+
+                # --- TỰ ĐỘNG CHUYỂN TIẾP CHO KHÁCH HÀNG ĐANG ĐỢI ---
+                candidate_sessions = []
+                fallback_sessions = []
+                for key_session, d_obj in reversed(list(memory_store.items())):
+                    if not key_session.endswith("_data"):
+                        continue
+                    customer_data = d_obj
+                    session_key = key_session.replace("_data", "")
+                    # Luôn cập nhật seat_map_info mới nhất cho các khách đang chờ chọn ghế
+                    if not getattr(customer_data, "ghe_chon", None):
+                        memory_store[f"{session_key}_seat_map_info"] = map_data
+                    else:
+                        continue
+                    
+                    cust_ngay = normalize_date(getattr(customer_data, "ngay_khoi_hanh", ""))
+                    cust_expiry = normalize_date(getattr(customer_data, "ngay_het_han_visa", ""))
+                    cust_history = " ".join([m.get("content", "") for m in memory_store.get(session_key, []) if isinstance(m, dict)])
+                    cust_service = get_customer_service_type(customer_data, history_text=cust_history) or "45D"
+                    
+                    dest = "cambodia" if cust_service == "Cambodia" else "laos"
+                    adj_date = validate_and_adjust_departure(cust_ngay or cust_expiry, cust_expiry, getattr(customer_data, "loai_visa", ""), dest)
+                    
+                    is_date_match = (
+                        cust_ngay == ngay 
+                        or adj_date == ngay 
+                        or (cust_expiry and normalize_date(cust_expiry) == ngay)
+                        or (not cust_ngay and not cust_expiry)
+                    )
+                    
+                    is_service_match = (
+                        not explicit_service
+                        or cust_service == service 
+                        or (service == "90D" and ("90" in (getattr(customer_data, "loai_visa", "") or "") or "90" in cust_history))
+                        or (service == "Cambodia" and ("cambodia" in cust_history.lower() or "campuchia" in cust_history.lower()))
+                        or (service == "45D" and ("45" in (getattr(customer_data, "loai_visa", "") or "") or "45" in cust_history))
+                    )
+                    
+                    if is_date_match and is_service_match:
+                        candidate_sessions.append((session_key, customer_data, cust_service))
+                    else:
+                        fallback_sessions.append((session_key, customer_data, cust_service))
+
+                # Nếu nhân viên vừa thả ảnh vào TESTBOT mà chưa khớp ngày chính xác với khách nào, gửi cho khách gần nhất đang đợi sơ đồ
+                target_sessions = candidate_sessions if candidate_sessions else fallback_sessions[:1]
+
+                forwarded_count = 0
+                for session_key, customer_data, cust_service in target_sessions:
+                    if session_key.startswith("fb_"):
+                        platform = "Facebook"
+                        uid = session_key[3:]
+                    elif session_key.startswith("zalo_"):
+                        platform = "Zalo"
+                        uid = session_key[5:]
+                    elif session_key.startswith("whatsapp_"):
+                        platform = "WhatsApp"
+                        uid = session_key[9:]
+                    elif session_key.startswith("telegram_"):
+                        platform = "Telegram"
+                        uid = session_key[9:]
+                    elif session_key.startswith("web_"):
+                        platform = "Website"
+                        uid = session_key[4:]
+                    else:
+                        platform = "Unknown"
+                        uid = session_key
+                        
+                    lang = get_lang_code(getattr(customer_data, "quoc_tich", ""))
+                    caption = build_seat_map_caption(lang, ngay, cust_service or service, map_data)
+                    
+                    cust_name = getattr(customer_data, 'ho_ten', 'Khách') or 'Khách'
+                    print(f"🚀 Tự động gửi sơ đồ chính thức mới từ nhóm cho khách {cust_name} ({platform} - {uid})")
+                    
+                    send_ok = False
+                    err_str = ""
+                    try:
+                        if platform == "Telegram":
+                            conn_id = memory_store.get(f"{session_key}_business_connection_id")
+                            if file_id:
+                                await tg_app.bot.send_photo(
+                                    chat_id=uid,
+                                    photo=file_id,
+                                    caption=caption,
+                                    business_connection_id=conn_id  # type: ignore
+                                )
+                            else:
+                                with open(local_path, "rb") as f_img:
+                                    await tg_app.bot.send_photo(
+                                        chat_id=uid,
+                                        photo=f_img,
+                                        caption=caption,
+                                        business_connection_id=conn_id  # type: ignore
+                                    )
+                            # Ghi nhận vào lịch sử hội thoại để AI biết đã gửi sơ đồ cho khách
+                            if session_key in memory_store and isinstance(memory_store[session_key], list):
+                                memory_store[session_key].append({"role": "assistant", "content": caption})
+                            send_ok = True
+                        elif platform == "Zalo":
+                            from main import send_zalo_image, send_zalo_message
+                            await send_zalo_message(uid, caption)
+                            send_ok, err_str = await send_zalo_image(uid, image_url)
+                        elif platform == "Facebook":
+                            from main import send_facebook_message, send_facebook_image
+                            fb_page_id = getattr(customer_data, "fb_page_id", None) or memory_store.get(f"{session_key}_fb_page_id")
+                            await send_facebook_message(uid, caption, page_id=fb_page_id)
+                            send_ok, err_str = await send_facebook_image(uid, image_url, page_id=fb_page_id, local_file_path=local_path)
+                        elif platform == "WhatsApp":
+                            from main import send_whatsapp_message, send_whatsapp_image
+                            await send_whatsapp_message(uid, caption)
+                            send_ok, err_str = await send_whatsapp_image(uid, image_url)
+                        elif platform == "Website":
+                            memory_store[f"{session_key}_pending_seat_map"] = image_url
+                            send_ok = True
+                    except Exception as e_forward:
+                        print(f"❌ Lỗi chuyển tiếp sơ đồ cho {uid} ({platform}): {e_forward}")
+                        err_str = str(e_forward)
+                        
+                    if send_ok:
+                        forwarded_count += 1
+                        log_message(uid, platform, "bot", f"[IMAGE SENT] Sơ đồ xe {ngay} ({service})")
+                        await message.reply_text(f"🚀 Đã tự động gửi sơ đồ xe buýt ngày {ngay} ({cust_service}) cho khách **{cust_name}** ({platform}) thành công!")
+                    else:
+                        await message.reply_text(f"⚠️ Gửi sơ đồ cho khách **{cust_name}** ({platform}) thất bại: {err_str}")
+            return
+
+        # ----- LUỒNG KHÁCH HÀNG: GỬI ẢNH (HỘ CHIẾU/HOÁ ĐƠN THANH TOÁN/VÉ CŨ) -----
+        if not update.effective_chat or update.effective_chat.type != "private": return
+        # Nếu chính chủ tài khoản Business (EASYTRIP visa) tự gửi ảnh sơ đồ xe trực tiếp vào cuộc trò chuyện với khách:
+        # Tự động phân tích các ghế đánh dấu màu vàng trên ảnh đó để Bot biết ghế nào đã kín / còn trống!
+        if update.business_message and message.from_user and message.chat and message.from_user.id != message.chat.id:
+            try:
+                media_obj_owner = message.photo[-1] if getattr(message, "photo", None) else getattr(message, "document", None)
+                if media_obj_owner:
+                    owner_photo_file = await media_obj_owner.get_file()
+                    owner_temp_path = f"temp_owner_{owner_photo_file.file_id}.jpg"
+                    await owner_photo_file.download_to_drive(owner_temp_path)
+                    seat_analysis = analyze_seat_map_image(owner_temp_path)
+                    if seat_analysis.get("is_seat_map") or seat_analysis.get("booked_seats"):
+                        owner_map_data = {
+                            "file_id": media_obj_owner.file_id,
+                            "url": "",
+                            "booked_seats": seat_analysis.get("booked_seats", []),
+                            "available_seats": seat_analysis.get("available_seats", []),
+                            "lower_available": seat_analysis.get("lower_available", []),
+                            "upper_available": seat_analysis.get("upper_available", []),
+                        }
+                        memory_store[f"{session_id}_seat_map_info"] = owner_map_data
+                        latest_seat_maps["latest"] = owner_map_data
+                        print(f"📌 Đã phân tích sơ đồ ghế do chủ shop gửi trực tiếp trong chat {message.chat.id}: Đã đặt={owner_map_data['booked_seats']}, Còn trống={owner_map_data['available_seats']}")
+                    if os.path.exists(owner_temp_path):
+                        os.remove(owner_temp_path)
+            except Exception as e_owner_map:
+                print(f"⚠️ Lỗi phân tích ảnh của chủ shop gửi: {e_owner_map}")
+            return
+        
+        # Bắn tín hiệu typing tức thì
+        try:
+            target_chat_id = update.effective_chat.id
+            conn_id_typing = update.business_message.business_connection_id if update.business_message else memory_store.get(f"{session_id}_business_connection_id")
+            if conn_id_typing:
+                await context.bot.send_chat_action(chat_id=target_chat_id, action="typing", business_connection_id=conn_id_typing)
+            else:
+                await context.bot.send_chat_action(chat_id=target_chat_id, action="typing")
+        except Exception:
+            pass
+
+        media_obj_cust = message.photo[-1] if getattr(message, "photo", None) else getattr(message, "document", None)
+        if not media_obj_cust:
+            return
+        photo_file = await media_obj_cust.get_file()
+        file_path = f"temp_{photo_file.file_id}.jpg"
+        await photo_file.download_to_drive(file_path)
+        img_type = await identify_image_type(file_path)
+        
+        record_id = memory_store.get(f"telegram_{chat_id}_record_id")
+        if record_id:
+            try:
+                token = await upload_image_to_lark(file_path)
+                if token: 
+                    await update_customer_image(record_id, img_type if img_type != "Exit Stamp" else "Exit stamp", token)
+            except Exception as e_lark:
+                print(f"⚠️ Lark upload error: {e_lark}")
+        
+        conn_id = update.business_message.business_connection_id if update.business_message else memory_store.get(f"{session_id}_business_connection_id")
+        is_awaiting_old = memory_store.get(f"{session_id}_awaiting_old_booking", False)
+        data = memory_store.get(f"{session_id}_data")
+        customer_name = getattr(data, "ho_ten", "Khách hàng") if data else "Khách hàng"
+        nationality = getattr(data, "quoc_tich", "") if data else ""
+        phone = getattr(data, "so_dien_thoai", "") if data else ""
+        
+        # Báo cáo lập tức cho Admin Group kèm link chat trực tiếp
+        admin_notif_msg = (
+            f"📸 **KHÁCH HÀNG GỬI ẢNH MỚI (HỘ CHIẾU/HOÁ ĐƠN/VÉ CŨ)**\n"
+            f"👤 Tên: {customer_name} ({nationality})\n"
+            f"📞 SĐT: {phone}\n"
+            f"📂 Thể loại nhận diện: {img_type}\n"
+            f"👉 [Admin vui lòng kiểm tra và xử lý giao dịch!](https://t.me/easytripvisa_co_ltd)"
+        )
+        try:
+            await send_to_admin_group(context, admin_notif_msg)
+        except Exception:
+            pass
+
+        # Thông báo đa kênh tập trung cho Admin
+        platform_label = "Telegram Business" if update.business_message else "Telegram"
+        user_id_photo = str(update.effective_user.id) if update.effective_user else chat_id
+        await notify_admin_incoming_message(
+            platform=platform_label,
+            user_id=user_id_photo,
+            user_text=f"[Khách gửi ảnh: {img_type}]",
+            session_id=session_id,
+            user_name=customer_name
+        )
+
+        # 1. Trích xuất OCR từ ảnh để tự động kiểm tra vé cũ / thông tin booking
+        ocr_text = await extract_text_from_image(file_path)
+        matched_cust = customer_memory.find_customer_by_booking_text(ocr_text) if ocr_text else None
+        
+        # Nhận diện nếu ảnh là vé / biên nhận / thông tin đặt xe cũ
+        is_ticket_or_receipt = any(kw in (ocr_text or "").upper() for kw in [
+            "RECEIPT", "PAYMENT", "DATE OF", "SERVICE TYPES", "SEAT NUMBER", 
+            "PICK UP", "DEPARTURE DATE", "E-VISA", "VISARUN", "VISA RUN", "HON CHONG", "40 HON CHONG"
+        ]) if ocr_text else False
+
+        user_id = str(update.effective_user.id) if update.effective_user else chat_id
+
+        # 1. Nếu tìm thấy khách cũ trên CRM (dù gửi lần đầu hay gửi lại)
+        if matched_cust:
+            memory_store.pop(f"{session_id}_awaiting_old_booking", None)
+            print(f"🎯 OCR đã nhận diện Khách Cũ từ ảnh vé: {matched_cust.get('full_name')}")
+            if matched_cust.get("customer_id") and user_id:
+                customer_memory.link_telegram_to_customer(matched_cust["customer_id"], user_id)
+            
+            cust_name = matched_cust.get("full_name") or "Valued Customer"
+            cust_nat = matched_cust.get("nationality") or "Russia"
+            old_route = matched_cust.get("preferred_route") or "90D - Cambodia"
+            accompanying = matched_cust.get("accompanying_passengers") or []
+            group_seats = matched_cust.get("group_seats") or []
+            old_seat = ", ".join(group_seats) if group_seats else (matched_cust.get("preferred_seat") or "A1")
+            old_pickup = matched_cust.get("preferred_pickup") or "77 Thái Nguyên"
+            past_trips = matched_cust.get("past_trips") or []
+            last_trip_desc = f"{old_route}, date {past_trips[0].get('departure_date')}, seat {old_seat}, pickup {old_pickup}" if past_trips else f"{old_route}, seat {old_seat}, pickup {old_pickup}"
+            group_desc = f" (Accompanying Passengers: {', '.join(accompanying)})" if accompanying else ""
+
+            nat_lower = cust_nat.lower()
+            if any(k in nat_lower for k in ["russia", "russian", "nga", "belarus", "kazakh", "ukrain"]) or customer_memory.is_slavic_name(cust_name):
+                target_lang = "RUSSIAN (Русский язык)"
+            elif any(k in nat_lower for k in ["korea", "korean", "hàn quốc"]):
+                target_lang = "KOREAN (한국어)"
+            elif any(k in nat_lower for k in ["vietnam", "vietnamese", "việt nam"]):
+                target_lang = "VIETNAMESE (Tiếng Việt)"
+            else:
+                target_lang = "ENGLISH"
+
+            prompt_msg = (
+                f"[RETURNING CUSTOMER VERIFIED VIA TICKET PHOTO]\n"
+                f"Customer Name: {cust_name}{group_desc}\n"
+                f"Nationality: {cust_nat}\n"
+                f"Previous Service: {old_route}\n\n"
+                f"🎯 MANDATORY INSTRUCTIONS FOR RESPONSE:\n"
+                f"1. YOU MUST WRITE YOUR ENTIRE RESPONSE IN {target_lang}!\n"
+                f"2. Warmly greet the customer by name ({cust_name}) in {target_lang}"
+                + (f" and their group/family ({', '.join(accompanying)})" if accompanying else "")
+                + f" and acknowledge them as a valued returning customer.\n"
+                f"3. ASK DIRECTLY IF THEY WANT TO RE-BOOK THEIR PREVIOUS SERVICE ({old_route}) for their upcoming trip.\n"
+                f"4. ⚠️ CRITICAL RULE: DO NOT RECITE/REPEAT OLD TRIP DETAILS (no need to list old dates, old seats, or old pickup locations in a long list).\n"
+                f"5. Mention the special returning customer discounted rate.\n"
+                f"6. If they want to change service / do not want the previous service, ask ONLY these 2 questions:\n"
+                f"   - Question 1: What type of service would they like (45-day visa-free, 90-day E-visa single/multi, or E-visa only)?\n"
+                f"   - Question 2: What date do they plan to travel (or when does their visa expire)?\n"
+                f"7. Confirm all details directly and conversationally in chat (DO NOT send external form links or make the customer fill forms).\n"
+                f"⚠️ NEVER confirm the old date from the previous ticket because it is a past completed trip."
+            )
+            
+            # Cho AI phản hồi trực tiếp
+            await process_customer_text_message(update, context, user_id, prompt_msg)
+            return
+
+        # 2. Nếu khách đang trong luồng chọn Khách Cũ HOẶC gửi ảnh biên nhận/vé nhưng không tìm thấy trên CRM
+        if is_awaiting_old or is_ticket_or_receipt:
+            memory_store.pop(f"{session_id}_awaiting_old_booking", None)
+            not_found_photo_msg = (
+                "ℹ️ **We could not find your booking information in our database.**\n"
+                "Therefore, our **standard website listed prices** will apply to your booking.\n\n"
+                "👉 Please let us know your **intended departure date or preferred visa type** to proceed!\n\n"
+                "────────────────────\n"
+                "ℹ️ **Chúng tôi không tìm thấy thông tin của bạn trên cơ sở dữ liệu của chúng tôi, vì vậy chúng ta sẽ áp dụng giá niêm yết trên website.**\n\n"
+                "👉 Vui lòng cho chúng tôi biết **ngày dự kiến khởi hành hoặc loại visa bạn quan tâm**!\n\n"
+                "────────────────────\n"
+                "ℹ️ **Мы не нашли информацию о вашем бронировании в нашей базе данных.**\n"
+                "Поэтому для вашей поездки будет действовать **стандартный тариф, указанный на нашем сайте**.\n\n"
+                "👉 Пожалуйста, напишите **желаемую дату поездки или интересующий тип визы**!\n\n"
+                "────────────────────\n"
+                "ℹ️ **저희 데이터베이스에서 이전 예약 정보를 찾을 수 없어, 웹사이트에 게시된 표준 요금이 적용됩니다.**\n\n"
+                "👉 원하시는 **출발 날짜나 비자 종류**를 말씀해 주시면 바로 안내해 드리겠습니다!"
+            )
+            if conn_id:
+                await context.bot.send_message(chat_id=int(chat_id), text=not_found_photo_msg, parse_mode="Markdown", business_connection_id=conn_id)  # type: ignore
+            else:
+                await message.reply_text(not_found_photo_msg, parse_mode="Markdown")
+            return
+
+        lang = get_lang_code(nationality) if data else "en"
+        if conn_id:
+            await context.bot.send_message(chat_id=int(chat_id), text=get_msg("image_received", lang, img_type=img_type), business_connection_id=conn_id)  # type: ignore
+        else:
+            await message.reply_text(get_msg("image_received", lang, img_type=img_type))
+    except Exception as e:
+        import traceback
+        print(f"❌ PHOTO ERROR: {e}")
+        traceback.print_exc()
+        try:
+            await message.reply_text("Received your photo! We are processing your request. Please wait a moment.")
+        except Exception:
+            pass
+    finally:
+        # Xóa file tạm
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception:
+            pass
+
+# ============================================================
+# CALLBACK & WEBHOOK
+# ============================================================
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not query:
+        return
+    await query.answer()
+    try:
+        parts = (query.data or "").split("|")
+        if len(parts) < 2: return
+        
+        # 0. Xử lý lựa chọn Khách Cũ vs Khách Mới
+        if parts[0] == "cust_type":
+            cust_choice = parts[1]
+            if not update.effective_user:
+                return
+            user_id = str(update.effective_user.id)
+            session_id = f"telegram_{user_id}"
+            conn_id = memory_store.get(f"{session_id}_business_connection_id")
+            target_msg = query.message
+            
+            if cust_choice == "new":
+                memory_store[f"{session_id}_customer_tier"] = "NEW"
+                memory_store.pop(f"{session_id}_awaiting_old_booking", None)
+                await send_new_customer_welcome_menu(user_id, target_msg, conn_id=conn_id)
+            elif cust_choice == "returning":
+                memory_store[f"{session_id}_awaiting_old_booking"] = True
+                await send_returning_customer_request(user_id, target_msg, conn_id=conn_id)
+            return
+
+        # 1. Xử lý quy trình Wizard từng bước (Step-by-step Onboarding)
+        if parts[0] == "step":
+            await handle_step_callback(update, context, parts, process_customer_text_message)
+            return
+
+        # 2. Xử lý các nút bấm dịch vụ cũ (Tương thích ngược)
+        if parts[0] == "service":
+            service_key = parts[1]
+            if not update.effective_user:
+                return
+            user_id = str(update.effective_user.id)
+            session_id = f"telegram_{user_id}"
+            
+            service_texts = {
+                "laos_45d": "I would like to book the Laos Visa Run 45 Days (Visa Free)",
+                "laos_90d": "I would like to book the Laos Visa Run 90 Days (E-visa)",
+                "cambodia_90d": "I would like to book the Cambodia Visa Run 90 Days",
+                "evisa_urgent": "I would like to book the Urgent Vietnam E-visa Service",
+                "fast_track": "I would like to inquire about Airport Fast Track & Motorbike Rental"
+            }
+            user_text = service_texts.get(service_key, "Service Inquiry")
+            
+            # Gửi tin nhắn xác nhận nút đã chọn
+            if query.message:
+                q_msg: Any = query.message
+                await q_msg.reply_text(f"👉 Bạn đã chọn: {user_text}", parse_mode="Markdown")
+            
+            # Xử lý tin nhắn giả lập bằng AI Agent
+            await process_customer_text_message(update, context, user_id, user_text)
+            return
+
+        if len(parts) < 3: return
+        action, record_id, session_id = parts[0], parts[1], parts[2]
+        order_meta = memory_store.get(f"{session_id}_order", {})
+        order_data = order_meta.get("data")
+        platform = order_meta.get("platform", "")
+        uid = order_meta.get("user_id", "")
+        lang = get_lang_code(getattr(order_data, "quoc_tich", "")) if order_data else "en"
+
+        q_msg_text = getattr(query.message, "text", "") or ""
+        if action == "paid":
+            await update_order_status(record_id, "PAID")
+            confirm_msg = get_msg("payment_confirmed", lang)
+            final_receipt = generate_booking_final_message(order_data, lang=lang)
+            try:
+                if platform == "Telegram":
+                    conn_id = memory_store.get(f"{session_id}_business_connection_id")
+                    await context.bot.send_message(chat_id=uid, text=confirm_msg, business_connection_id=conn_id)  # type: ignore
+                    await context.bot.send_message(chat_id=uid, text=final_receipt, parse_mode="Markdown", business_connection_id=conn_id)  # type: ignore
+                elif platform == "Zalo": 
+                    from main import send_zalo_message
+                    await send_zalo_message(uid, confirm_msg)
+            except: pass
+            
+            try:
+                from google_sheet_sync import sync_order_to_sheet
+                await sync_order_to_sheet({"Order ID": order_meta.get("order_id", ""), "Status": "PAID", "Full Name": getattr(order_data, 'ho_ten', 'Customer'), "Agent": getattr(order_data, 'agent', 'Direct')})
+            except: pass
+            await query.edit_message_text(text=q_msg_text + "\n\n✅ Đã xác nhận PAID!")
+
+        elif action == "cancel":
+            await update_order_status(record_id, "CANCELLED")
+            await query.edit_message_text(text=q_msg_text + "\n\n❌ Đã huỷ đơn.")
+    except Exception as e:
+        print(f"❌ CALLBACK ERROR: {e}")
+
+async def check_visa_reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lệnh Admin: Quét và gửi nhắc nhở hết hạn visa thủ công ngay lập tức"""
+    if not update.effective_message:
+        return
+    status_msg = await update.effective_message.reply_text("⏳ Đang quét cơ sở dữ liệu và gửi nhắc nhở hết hạn visa (trước 10 ngày)...")
+    try:
+        from visa_reminder import check_and_send_daily_reminders
+        report = await check_and_send_daily_reminders(bot=context.bot)
+        found = report.get("total_found", 0)
+        sent = report.get("reminders_sent", 0)
+        await status_msg.edit_text(
+            f"✅ **HOÀN TẤT QUÉT NHẮC NHỞ VISA**\n\n"
+            f"📊 Tìm thấy: {found} khách sắp hết hạn (trong 9-11 ngày tới)\n"
+            f"📤 Đã gửi qua Telegram Bot: {sent}\n"
+            f"🔔 Báo cáo chi tiết đã được gửi vào Admin Group!"
+        )
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Lỗi khi quét nhắc nhở: {e}")
+
+async def sync_contracts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lệnh Admin: Đồng bộ toàn bộ hợp đồng và hộ chiếu từ CRM lên Lark Cloud ngay lập tức"""
+    if not update.effective_message:
+        return
+    status_msg = await update.effective_message.reply_text("⏳ Đang quét CRM Lark Base, tạo file hợp đồng và upload Hợp đồng + Hộ chiếu lên Lark Cloud...")
+    try:
+        contract_proj_dir = os.path.abspath(os.path.join(ROOT_DIR, "..", "contracts-easytrip"))
+        contract_script = os.path.join(contract_proj_dir, "scripts", "daily_contract_sync.py")
+        if os.path.exists(contract_script):
+            import subprocess
+            proc = subprocess.run([sys.executable, contract_script, "--now"], capture_output=True, text=True, cwd=contract_proj_dir)
+            if proc.returncode == 0:
+                await status_msg.edit_text(
+                    f"✅ **HOÀN TẤT ĐỒNG BỘ HỢP ĐỒNG & HỘ CHIẾU!**\n\n"
+                    f"📄 Đã cập nhật 100% hợp đồng mới nhất đến hiện tại.\n"
+                    f"☁️ Đã upload toàn bộ PDF & Hộ chiếu lên 2 kho lưu trữ trên Lark Base.\n"
+                    f"🤖 Đã lưu trữ trong phân hệ contracts-easytrip."
+                )
+            else:
+                await status_msg.edit_text(f"⚠️ Quá trình đồng bộ kết thúc với cảnh báo:\n{proc.stderr or proc.stdout}")
+        else:
+            await status_msg.edit_text("❌ Không tìm thấy phân hệ contracts-easytrip!")
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Lỗi khi đồng bộ hợp đồng: {e}")
+
+
+async def daily_harvest_report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lệnh Admin: Lấy báo cáo thu hoạch đơn hàng trong ngày từ Lark Base.
+    Sử dụng: /bao_cao hoặc /bao_cao 07/09 để xem ngày cụ thể.
+    """
+    if not update.effective_message:
+        return
+    args = context.args if context.args else []
+    target_date = args[0] if args else None
+    date_label = target_date or datetime.now().strftime("%d/%m/%Y")
+    status_msg = await update.effective_message.reply_text(f"⏳ Đang tổng hợp báo cáo ngày {date_label}...")
+    try:
+        report = await get_daily_harvest_report(target_date)
+        text = report["report_text"]
+        if len(text) > 4000:
+            text = text[:4000] + "\n...\n(Báo cáo bị cắt ngắn do quá dài)"
+        await status_msg.edit_text(text, parse_mode="Markdown")
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Lỗi khi lấy báo cáo: {e}")
+
+
+tg_app.add_handler(CommandHandler("start", start_command))
+tg_app.add_handler(CommandHandler("getid", get_id_command))
+tg_app.add_handler(CommandHandler("check_visa_reminders", check_visa_reminders_command))
+tg_app.add_handler(CommandHandler("remind_visa", check_visa_reminders_command))
+tg_app.add_handler(CommandHandler("sync_contracts", sync_contracts_command))
+tg_app.add_handler(CommandHandler("bao_cao", daily_harvest_report_command))
+tg_app.add_handler(CommandHandler("report", daily_harvest_report_command))
+tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+tg_app.add_handler(MessageHandler(filters.UpdateType.BUSINESS_MESSAGE & filters.TEXT, handle_text))
+tg_app.add_handler(MessageHandler(filters.UpdateType.EDITED_BUSINESS_MESSAGE & filters.TEXT, handle_text))
+tg_app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_photo))
+tg_app.add_handler(MessageHandler(filters.UpdateType.BUSINESS_MESSAGE & (filters.PHOTO | filters.Document.IMAGE), handle_photo))
+tg_app.add_handler(CallbackQueryHandler(handle_callback))
+
+@router.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    try:
+        data = await request.json()
+        update = Update.de_json(data, tg_app.bot)
+        await tg_app.process_update(update)
+    except Exception as e:
+        import traceback
+        print(f"❌ Error processing Telegram webhook update: {e}")
+        traceback.print_exc()
+    return Response(status_code=200)
