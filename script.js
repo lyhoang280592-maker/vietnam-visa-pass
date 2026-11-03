@@ -1827,7 +1827,7 @@ window.handleCalcBooking = function (channel) {
   if (channel === 'wa') {
     window.open(`https://wa.me/84868462071?text=${encodeURIComponent(msg)}`, '_blank');
   } else if (channel === 'tg') {
-    window.open(`https://t.me/vietnamvisapass?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://t.me/easytripvisa_co_ltd?text=${encodeURIComponent(msg)}`, '_blank');
   }
 };
 

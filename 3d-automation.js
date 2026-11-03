@@ -2041,7 +2041,7 @@ window.show3DModalForHub = function(hub) {
     details.innerHTML = `
       <div style="margin-bottom:14px; font-size:0.95rem; color:#f8fafc; line-height:1.6;">${hub.info}</div>
       <div style="margin-bottom:12px;"><strong style="color:#34d399;">⚡ Hotline 24/7:</strong> +84 868 462 071</div>
-      <div style="margin-bottom:12px;"><strong style="color:#38bdf8;">✈ Telegram Concierge:</strong> @vietnamvisapass</div>
+      <div style="margin-bottom:12px;"><strong style="color:#38bdf8;">✈ Telegram Concierge:</strong> @easytripvisa_co_ltd</div>
       <p style="font-size:0.85rem; color:var(--text-muted);">
         Click below to receive instant schedule, seat availability and guaranteed booking consultation.
       </p>
@@ -2390,7 +2390,7 @@ window.handleCalcBooking3D = function(channel) {
   if (channel === 'wa') {
     window.open(`https://wa.me/84868462071?text=${encodeURIComponent(msg)}`, '_blank');
   } else if (channel === 'tg') {
-    window.open(`https://t.me/vietnamvisapass?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://t.me/easytripvisa_co_ltd?text=${encodeURIComponent(msg)}`, '_blank');
   }
 };
 
