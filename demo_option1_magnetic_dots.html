@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo 1: Cyber Matrix Magnetic Dots (Lưới chấm tương tác chuột)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0B0F19;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        #interactive-bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            pointer-events: auto;
+        }
+        .badge {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            color: #00f0ff;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background: #00f0ff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00f0ff;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+        h1 {
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 40%, #00f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            font-size: 16px;
+            color: #94a3b8;
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            background: linear-gradient(135deg, #00f0ff, #0088ff);
+            color: #0B0F19;
+            font-weight: 700;
+            padding: 12px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
+        }
+        .instruction-box {
+            margin-top: 40px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 500px;
+            font-size: 14px;
+            color: #cbd5e1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- CANVAS NỀN TƯƠNG TÁC -->
+    <canvas id="interactive-bg-canvas"></canvas>
+
+    <!-- NỘI DUNG MẪU MÔ PHỎNG LADIPAGE -->
+    <div class="content">
+        <div class="badge">
+            <span class="badge-dot"></span>
+            HỆ THỐNG AUTOMATION VISA 24/7
+        </div>
+        <h1>Ведущий провайдер визовых услуг во Вьетнаме</h1>
+        <p>✨ Rê chuột trên toàn bộ trang để thấy các chấm tròn Cyan hút theo con trỏ chuột với hiệu ứng đàn hồi siêu mượt!</p>
+        <div class="btn-group">
+            <a href="#" class="btn">ĐẶT DỊCH VỤ NGAY</a>
+        </div>
+        <div class="instruction-box">
+            👉 <strong>Trải nghiệm:</strong> Di chuyển chuột vòng quanh trang. Các chấm tròn trong phạm vi con trỏ sẽ sáng rực, phóng to và bị hút theo lực từ tính (Magnetic Force) cực kỳ sinh động!
+        </div>
+    </div>
+
+    <!-- SCRIPT TỰ ĐỘNG CHẠY NỀN -->
+    <script>
+    (function() {
+        const canvas = document.getElementById("interactive-bg-canvas");
+        const ctx = canvas.getContext("2d");
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initDots();
+        });
+
+        const mouse = {
+            x: -1000,
+            y: -1000,
+            radius: 140, // Bán kính tương tác của chuột
+            active: false
+        };
+
+        window.addEventListener("mousemove", (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+        });
+
+        window.addEventListener("mouseleave", () => {
+            mouse.active = false;
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        // Hỗ trợ cảm ứng mobile
+        window.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+                mouse.active = true;
+            }
+        });
+
+        window.addEventListener("touchend", () => {
+            mouse.active = false;
+        });
+
+        const DOT_SPACING = 28; // Khoảng cách giữa các chấm tròn
+        let dots = [];
+
+        class Dot {
+            constructor(x, y) {
+                this.originX = x;
+                this.originY = y;
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.baseRadius = 1.3;
+                this.radius = this.baseRadius;
+                this.alpha = 0.16;
+                this.friction = 0.88;
+                this.spring = 0.04;
+                this.pulseOffset = Math.random() * Math.PI * 2;
+            }
+
+            update(time) {
+                // Hiệu ứng thở nhẹ tự nhiên
+                const breath = Math.sin(time * 0.002 + this.pulseOffset) * 0.05;
+
+                // Tính khoảng cách tới con trỏ chuột
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < mouse.radius && mouse.active) {
+                    // Lực hút từ tính theo chuột (Magnetic attraction)
+                    const force = (1 - dist / mouse.radius);
+                    const angle = Math.atan2(dy, dx);
+                    const pull = force * 15; // Cường độ hút
+
+                    this.vx += Math.cos(angle) * pull * 0.08;
+                    this.vy += Math.sin(angle) * pull * 0.08;
+
+                    // Tăng độ sáng và kích thước chấm
+                    this.alpha = 0.25 + force * 0.75;
+                    this.radius = this.baseRadius + force * 2.8;
+                } else {
+                    // Trở lại trạng thái bình thường
+                    this.alpha += (0.16 + breath - this.alpha) * 0.1;
+                    this.radius += (this.baseRadius - this.radius) * 0.1;
+                }
+
+                // Lực đàn hồi kéo chấm về vị trí ban đầu (Spring physics)
+                const homeDx = this.originX - this.x;
+                const homeDy = this.originY - this.y;
+                this.vx += homeDx * this.spring;
+                this.vy += homeDy * this.spring;
+
+                // Giảm tốc ma sát
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 240, 255, ${this.alpha})`;
+                ctx.fill();
+
+                // Tạo hào quang nếu đang sáng rực
+                if (this.alpha > 0.45) {
+                    ctx.shadowColor = "#00f0ff";
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
+        function initDots() {
+            dots = [];
+            const cols = Math.ceil(width / DOT_SPACING) + 1;
+            const rows = Math.ceil(height / DOT_SPACING) + 1;
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    dots.push(new Dot(i * DOT_SPACING, j * DOT_SPACING));
+                }
+            }
+        }
+
+        initDots();
+
+        let lastTime = 0;
+        function animate(time) {
+            ctx.clearRect(0, 0, width, height);
+
+            // Vẽ các tia laser mảnh nối từ chuột đến các chấm lân cận
+            if (mouse.active) {
+                for (let i = 0; i < dots.length; i++) {
+                    const dot = dots[i];
+                    const dx = mouse.x - dot.x;
+                    const dy = mouse.y - dot.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 90) {
+                        const lineAlpha = (1 - dist / 90) * 0.35;
+                        ctx.beginPath();
+                        ctx.moveTo(mouse.x, mouse.y);
+                        ctx.lineTo(dot.x, dot.y);
+                        ctx.strokeStyle = `rgba(0, 240, 255, ${lineAlpha})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Cập nhật và vẽ từng chấm
+            for (let i = 0; i < dots.length; i++) {
+                dots[i].update(time);
+                dots[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+    })();
+    </script>
+</body>
+</html>

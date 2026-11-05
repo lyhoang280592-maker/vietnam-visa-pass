@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo 2: High-Tech Automation Neural Stream (Nền tự động hóa trực quan)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0B0F19;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        #automation-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+        .badge {
+            background: rgba(0, 240, 255, 0.12);
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            color: #00f0ff;
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+        .pulse-beacon {
+            width: 10px;
+            height: 10px;
+            background: #00f0ff;
+            border-radius: 50%;
+            position: relative;
+        }
+        .pulse-beacon::after {
+            content: '';
+            position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            border: 2px solid #00f0ff;
+            border-radius: 50%;
+            animation: ring 1.6s infinite ease-out;
+        }
+        @keyframes ring {
+            0% { transform: scale(0.6); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        h1 {
+            font-size: clamp(30px, 5.5vw, 52px);
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 45%, #00f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            font-size: 16px;
+            color: #94a3b8;
+            max-width: 620px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            background: linear-gradient(135deg, #00f0ff, #0284c7);
+            color: #070d19;
+            font-weight: 800;
+            padding: 14px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+            letter-spacing: 0.5px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.8);
+        }
+        .hud-card {
+            margin-top: 40px;
+            background: rgba(11, 15, 25, 0.75);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 22px 28px;
+            max-width: 540px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .hud-stat {
+            text-align: left;
+        }
+        .hud-num {
+            font-size: 24px;
+            font-weight: 800;
+            color: #00f0ff;
+        }
+        .hud-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="automation-canvas"></canvas>
+
+    <div class="content">
+        <div class="badge">
+            <span class="pulse-beacon"></span>
+            AUTONOMOUS VISA SYSTEM • ACTIVE 24/7
+        </div>
+        <h1>Ведущий провайдер визовых услуг во Вьетнаме</h1>
+        <p>Mạng lưới luồng dữ liệu tự động hóa kết nối các node visa, xe buýt liên vận quốc tế & cổng xuất nhập cảnh thời gian thực.</p>
+        <div class="btn-group">
+            <a href="#" class="btn">⚡ TRẢI NGHIỆM ĐẶT CHỖ TỰ ĐỘNG</a>
+        </div>
+
+        <div class="hud-card">
+            <div class="hud-stat">
+                <div class="hud-num">4 Giờ</div>
+                <div class="hud-label">E-Visa Khẩn Cấp</div>
+            </div>
+            <div style="width: 1px; height: 35px; background: rgba(255,255,255,0.1);"></div>
+            <div class="hud-stat">
+                <div class="hud-num">100% Free</div>
+                <div class="hud-label">Trẻ dưới 9 tuổi</div>
+            </div>
+            <div style="width: 1px; height: 35px; background: rgba(255,255,255,0.1);"></div>
+            <div class="hud-stat">
+                <div class="hud-num">24/7</div>
+                <div class="hud-label">AI Dispatcher</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById("automation-canvas");
+        const ctx = canvas.getContext("2d");
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initNodes();
+        });
+
+        const mouse = {
+            x: -1000,
+            y: -1000,
+            active: false,
+            radius: 170
+        };
+
+        window.addEventListener("mousemove", (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+        });
+
+        window.addEventListener("mouseleave", () => {
+            mouse.active = false;
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+                mouse.active = true;
+            }
+        });
+        window.addEventListener("touchend", () => { mouse.active = false; });
+
+        // Tạo danh sách các Node đại diện cho Data Packet / Routing Nodes
+        const NODE_COUNT = Math.floor((width * height) / 14000);
+        let nodes = [];
+
+        class Node {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.7;
+                this.vy = (Math.random() - 0.5) * 0.7;
+                this.radius = Math.random() * 2 + 1.2;
+                this.isHub = Math.random() < 0.15; // 15% là Hub trung tâm phát sáng
+                if (this.isHub) this.radius = 3.5;
+                this.color = this.isHub ? "#00f0ff" : "rgba(0, 240, 255, 0.4)";
+                this.pulse = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                this.pulse += 0.03;
+
+                // Tương tác chuột: Nếu gần chuột, nhẹ nhàng trôi theo từ trường
+                if (mouse.active) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < mouse.radius) {
+                        const force = (1 - dist / mouse.radius);
+                        this.x += (dx / dist) * force * 1.5;
+                        this.y += (dy / dist) * force * 1.5;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                if (this.isHub) {
+                    const glow = Math.sin(this.pulse) * 0.3 + 0.7;
+                    ctx.fillStyle = `rgba(0, 240, 255, ${glow})`;
+                    ctx.shadowColor = "#00f0ff";
+                    ctx.shadowBlur = 12;
+                } else {
+                    ctx.fillStyle = this.color;
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fill();
+            }
+        }
+
+        // Các gói tin chạy dọc theo đường kết nối (Data Packets)
+        let packets = [];
+        class DataPacket {
+            constructor(fromNode, toNode) {
+                this.from = fromNode;
+                this.to = toNode;
+                this.progress = 0;
+                this.speed = Math.random() * 0.015 + 0.008;
+            }
+
+            update() {
+                this.progress += this.speed;
+                return this.progress < 1;
+            }
+
+            draw() {
+                const curX = this.from.x + (this.to.x - this.from.x) * this.progress;
+                const curY = this.from.y + (this.to.y - this.from.y) * this.progress;
+                ctx.beginPath();
+                ctx.arc(curX, curY, 2, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowColor = "#00f0ff";
+                ctx.shadowBlur = 10;
+                ctx.fill();
+            }
+        }
+
+        function initNodes() {
+            nodes = [];
+            const count = Math.max(35, Math.min(100, Math.floor((width * height) / 16000)));
+            for (let i = 0; i < count; i++) {
+                nodes.push(new Node());
+            }
+        }
+
+        initNodes();
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Vẽ lưới tọa độ mờ phía sau
+            ctx.strokeStyle = "rgba(0, 240, 255, 0.04)";
+            ctx.lineWidth = 1;
+            const gridStep = 40;
+            for (let x = 0; x < width; x += gridStep) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += gridStep) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // 2. Cập nhật và kết nối các Nodes
+            const maxConnectDist = 120;
+            for (let i = 0; i < nodes.length; i++) {
+                nodes[i].update();
+                nodes[i].draw();
+
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxConnectDist) {
+                        const alpha = (1 - dist / maxConnectDist) * 0.22;
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+                        ctx.lineWidth = 0.9;
+                        ctx.stroke();
+
+                        // Thỉnh thoảng phát sinh Data Packet chạy qua
+                        if (Math.random() < 0.0007 && packets.length < 15) {
+                            packets.push(new DataPacket(nodes[i], nodes[j]));
+                        }
+                    }
+                }
+
+                // 3. Kết nối với chuột nếu ở gần
+                if (mouse.active) {
+                    const dx = mouse.x - nodes[i].x;
+                    const dy = mouse.y - nodes[i].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < mouse.radius) {
+                        const alpha = (1 - dist / mouse.radius) * 0.45;
+                        ctx.beginPath();
+                        ctx.moveTo(mouse.x, mouse.y);
+                        ctx.lineTo(nodes[i].x, nodes[i].y);
+                        ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 4. Vẽ hiệu ứng Radar xung quanh con trỏ chuột
+            if (mouse.active) {
+                const now = Date.now() * 0.003;
+                const ringRadius = (now % 1) * mouse.radius;
+                const ringAlpha = (1 - (now % 1)) * 0.35;
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, ringRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 240, 255, ${ringAlpha})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "#00f0ff";
+                ctx.shadowColor = "#00f0ff";
+                ctx.shadowBlur = 10;
+                ctx.fill();
+            }
+
+            // 5. Cập nhật và vẽ các gói tin
+            for (let i = packets.length - 1; i >= 0; i--) {
+                if (!packets[i].update()) {
+                    packets.splice(i, 1);
+                } else {
+                    packets[i].draw();
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+    })();
+    </script>
+</body>
+</html>
