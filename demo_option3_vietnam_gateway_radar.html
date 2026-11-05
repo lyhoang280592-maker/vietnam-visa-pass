@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo 3: Vietnam Cross-Border Visarun & Visa Radar (Bản đồ luồng thị thực tương tác)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0B0F19;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        #vietnam-radar-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 24px;
+        }
+        .badge {
+            background: rgba(0, 240, 255, 0.12);
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            color: #00f0ff;
+            padding: 8px 22px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 22px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.8px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+        }
+        .live-dot {
+            width: 9px;
+            height: 9px;
+            background: #00f0ff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00f0ff;
+            animation: pulse-dot 1.4s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.5; }
+        }
+        h1 {
+            font-size: clamp(32px, 5.5vw, 54px);
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, #ffffff 40%, #38bdf8 70%, #00f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            font-size: 16px;
+            color: #94a3b8;
+            max-width: 660px;
+            line-height: 1.65;
+            margin-bottom: 32px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            background: linear-gradient(135deg, #00f0ff, #0284c7);
+            color: #070d19;
+            font-weight: 800;
+            padding: 14px 34px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+            letter-spacing: 0.5px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 45px rgba(0, 240, 255, 0.85);
+        }
+        .hud-grid {
+            margin-top: 45px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            max-width: 780px;
+            width: 100%;
+        }
+        .hud-card {
+            background: rgba(11, 15, 25, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 16px 20px;
+            text-align: left;
+            transition: border-color 0.3s;
+        }
+        .hud-card:hover {
+            border-color: rgba(0, 240, 255, 0.6);
+        }
+        .hud-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #00f0ff;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .hud-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .hud-sub {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="vietnam-radar-canvas"></canvas>
+
+    <div class="content">
+        <div class="badge">
+            <span class="live-dot"></span>
+            VIETNAM VISA & CROSS-BORDER VISARUN GATEWAY
+        </div>
+        <h1>Ведущий провайдер визовых услуг во Вьетнаме</h1>
+        <p>Hệ thống định vị & dẫn đường thị thực thông minh: Trực quan hóa các tuyến xe bus đêm liên vận quốc tế (Lào & Campuchia), cửa khẩu đường bộ và luồng cấp E-Visa siêu tốc 4H.</p>
+        
+        <div class="btn-group">
+            <a href="#" class="btn">⚡ ĐẶT CHỖ VISARUN TRỌN GÓI</a>
+        </div>
+
+        <div class="hud-grid">
+            <div class="hud-card">
+                <div class="hud-tag">🚌 Tuyến Lào Bờ Y</div>
+                <div class="hud-title">Nha Trang ⇄ Lào</div>
+                <div class="hud-sub">3.400.000 ₫ • Xe đêm 21:30</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-tag">🚌 Tuyến Mộc Bài</div>
+                <div class="hud-title">Nha Trang ⇄ Campuchia</div>
+                <div class="hud-sub">Combo 90D E-Visa 24h</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-tag">⚡ Cấp tốc 24/7</div>
+                <div class="hud-title">E-Visa Khẩn 4 Giờ</div>
+                <div class="hud-sub">2.000.000 ₫ • Nhận trong ngày</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-tag">💛 Babysitter Vietnam</div>
+                <div class="hud-title">Trẻ em dưới 9 tuổi</div>
+                <div class="hud-sub">100% Free Bus (0 ₫) + E-Visa</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById("vietnam-radar-canvas");
+        const ctx = canvas.getContext("2d");
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            recalcLocations();
+        });
+
+        const mouse = { x: -1000, y: -1000, active: false, radius: 180 };
+
+        window.addEventListener("mousemove", (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+        });
+
+        window.addEventListener("mouseleave", () => {
+            mouse.active = false;
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        window.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+                mouse.active = true;
+            }
+        });
+        window.addEventListener("touchend", () => { mouse.active = false; });
+
+        // Tọa độ các điểm Hub chính dựa theo tỷ lệ màn hình
+        let locations = [];
+        let routes = [];
+
+        function recalcLocations() {
+            // Định vị mô phỏng dải các điểm Visa Run thực tế
+            const cx = width * 0.5;
+            const cy = height * 0.5;
+
+            // Đặt các điểm phân bố cân đối 2 bên
+            locations = [
+                // Hub trọng điểm
+                { id: "NT", name: "Nha Trang (Hub)", x: cx + width * 0.12, y: cy + height * 0.08, type: "hub", color: "#00f0ff" },
+                { id: "BOY", name: "Cửa khẩu Bờ Y (Lào)", x: cx - width * 0.08, y: cy - height * 0.05, type: "border", color: "#38bdf8" },
+                { id: "MOCBAI", name: "Cửa khẩu Mộc Bài (CPC)", x: cx - width * 0.18, y: cy + height * 0.22, type: "border", color: "#38bdf8" },
+                { id: "DAD", name: "Đà Nẵng / Hội An", x: cx + width * 0.06, y: cy - height * 0.22, type: "hub", color: "#00f0ff" },
+                { id: "LAOBAO", name: "Cửa khẩu Lao Bảo (Lào)", x: cx - width * 0.14, y: cy - height * 0.32, type: "border", color: "#38bdf8" },
+                { id: "CXR", name: "Sân bay Cam Ranh (CXR)", x: cx + width * 0.22, y: cy + height * 0.16, type: "airport", color: "#a855f7" },
+                { id: "SGN", name: "TP. Hồ Chí Minh (SGN)", x: cx - width * 0.05, y: cy + height * 0.32, type: "airport", color: "#a855f7" },
+                { id: "HAN", name: "Hà Nội (HAN)", x: cx - width * 0.02, y: cy - height * 0.42, type: "airport", color: "#a855f7" },
+                { id: "MUINE", name: "Mũi Né (Phan Thiết)", x: cx + width * 0.04, y: cy + height * 0.24, type: "city", color: "#38bdf8" }
+            ];
+
+            // Các tuyến xe bus đêm & đường bay
+            routes = [
+                { from: "NT", to: "BOY", label: "Visarun Lào Bờ Y (21:30)", color: "#00f0ff", progress: 0, speed: 0.005 },
+                { from: "NT", to: "MOCBAI", label: "Visarun Campuchia (21:30)", color: "#00f0ff", progress: 0.4, speed: 0.0045 },
+                { from: "DAD", to: "LAOBAO", label: "Visarun Lao Bảo (05:00)", color: "#38bdf8", progress: 0.7, speed: 0.0055 },
+                { from: "NT", to: "CXR", label: "VIP Fast Track", color: "#a855f7", progress: 0.2, speed: 0.008 },
+                { from: "NT", to: "MUINE", label: "Trung chuyển Mũi Né", color: "#38bdf8", progress: 0.5, speed: 0.006 },
+                { from: "MUINE", to: "MOCBAI", label: "Mũi Né ⇄ Campuchia", color: "#00f0ff", progress: 0.8, speed: 0.005 }
+            ];
+        }
+
+        recalcLocations();
+
+        // Các hạt bụi ma trận bay lượn nền (Ambient Particles)
+        const particles = [];
+        for (let i = 0; i < 65; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                radius: Math.random() * 1.5 + 0.8,
+                alpha: Math.random() * 0.25 + 0.05
+            });
+        }
+
+        function drawRadarCircle(x, y, r, alpha) {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Vẽ lưới ma trận tinh tế (Subtle Dot Grid)
+            ctx.fillStyle = "rgba(0, 240, 255, 0.08)";
+            const step = 32;
+            for (let x = 0; x < width; x += step) {
+                for (let y = 0; y < height; y += step) {
+                    ctx.fillRect(x, y, 1.2, 1.2);
+                }
+            }
+
+            // 2. Vẽ các hạt bay tự do
+            for (let p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = width;
+                if (p.x > width) p.x = 0;
+                if (p.y < 0) p.y = height;
+                if (p.y > height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 240, 255, ${p.alpha})`;
+                ctx.fill();
+            }
+
+            // 3. Vẽ các tuyến đường hành trình (Visarun Lines)
+            for (let r of routes) {
+                const locA = locations.find(l => l.id === r.from);
+                const locB = locations.find(l => l.id === r.to);
+                if (!locA || !locB) continue;
+
+                // Đường cung nối (Curved Path)
+                const midX = (locA.x + locB.x) / 2;
+                const midY = (locA.y + locB.y) / 2 - 25; // Uốn cong nhẹ
+
+                ctx.beginPath();
+                ctx.moveTo(locA.x, locA.y);
+                ctx.quadraticCurveTo(midX, midY, locB.x, locB.y);
+                ctx.strokeStyle = "rgba(0, 240, 255, 0.18)";
+                ctx.lineWidth = 1.4;
+                ctx.setLineDash([4, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Cập nhật vị trí "Gói xe buýt / Hồ sơ visa" di chuyển
+                r.progress += r.speed;
+                if (r.progress > 1) r.progress = 0;
+
+                const t = r.progress;
+                // Công thức đường cong Quadratic Bezier: B(t) = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+                const px = (1 - t) * (1 - t) * locA.x + 2 * (1 - t) * t * midX + t * t * locB.x;
+                const py = (1 - t) * (1 - t) * locA.y + 2 * (1 - t) * t * midY + t * t * locB.y;
+
+                // Vẽ xe buýt / đốm sáng di chuyển
+                ctx.beginPath();
+                ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowColor = r.color;
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // 4. Vẽ các địa điểm Hub / Cửa khẩu
+            const now = Date.now() * 0.002;
+            for (let loc of locations) {
+                // Kiểm tra khoảng cách chuột
+                const dx = mouse.x - loc.x;
+                const dy = mouse.y - loc.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const isHover = dist < 90 && mouse.active;
+
+                // Vòng sóng tỏa
+                const waveR = 8 + (Math.sin(now + loc.x) * 4);
+                ctx.beginPath();
+                ctx.arc(loc.x, loc.y, isHover ? 18 : waveR, 0, Math.PI * 2);
+                ctx.strokeStyle = isHover ? "rgba(0, 240, 255, 0.8)" : `rgba(0, 240, 255, 0.25)`;
+                ctx.lineWidth = isHover ? 2 : 1;
+                ctx.stroke();
+
+                // Điểm trung tâm
+                ctx.beginPath();
+                ctx.arc(loc.x, loc.y, isHover ? 6 : 4, 0, Math.PI * 2);
+                ctx.fillStyle = loc.color;
+                ctx.shadowColor = loc.color;
+                ctx.shadowBlur = isHover ? 16 : 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Nhãn tên điểm
+                ctx.font = isHover ? "bold 13px sans-serif" : "11px sans-serif";
+                ctx.fillStyle = isHover ? "#00f0ff" : "rgba(148, 163, 184, 0.75)";
+                ctx.textAlign = "center";
+                ctx.fillText(loc.name, loc.x, loc.y + (isHover ? 22 : 18));
+            }
+
+            // 5. Tương tác chuột: Vòng Radar quét & tia liên kết
+            if (mouse.active) {
+                const radarTime = (Date.now() * 0.002) % 1;
+                drawRadarCircle(mouse.x, mouse.y, radarTime * mouse.radius, (1 - radarTime) * 0.4);
+                drawRadarCircle(mouse.x, mouse.y, 6, 0.8);
+
+                // Nối tia sáng từ chuột tới các Gateway gần nhất
+                for (let loc of locations) {
+                    const dx = mouse.x - loc.x;
+                    const dy = mouse.y - loc.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < mouse.radius) {
+                        const alpha = (1 - dist / mouse.radius) * 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(mouse.x, mouse.y);
+                        ctx.lineTo(loc.x, loc.y);
+                        ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+    })();
+    </script>
+</body>
+</html>
