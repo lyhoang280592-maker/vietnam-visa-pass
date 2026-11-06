@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Frameless Multi-Service Fluid Experience</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ROOT COLOR SYSTEM PHÂN TÁCH THEO 3 DỊCH VỤ */
+        :root {
+            --bg-deep: #05070D;
+            --font-sans: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            /* Mặc định ban đầu: Visarun (Xanh lá cây cửa khẩu) */
+            --service-color: #10b981;
+            --service-secondary: #059669;
+            --service-glow: rgba(16, 185, 129, 0.28);
+            --service-light: rgba(16, 185, 129, 0.12);
+        }
+
+        body.mode-visarun {
+            --service-color: #10b981; /* Xanh lá cây biên giới đường bộ */
+            --service-secondary: #059669;
+            --service-glow: rgba(16, 185, 129, 0.35);
+            --service-light: rgba(16, 185, 129, 0.12);
+        }
+
+        body.mode-evisa {
+            --service-color: #f59e0b; /* Vàng & Đỏ theo thithucdientu.gov.vn */
+            --service-secondary: #ef4444; /* Đỏ quốc kỳ / dấu mộc */
+            --service-glow: rgba(245, 158, 11, 0.35);
+            --service-light: rgba(239, 68, 68, 0.12);
+        }
+
+        body.mode-fasttrack {
+            --service-color: #38bdf8; /* Xanh da trời / hàng không quốc tế */
+            --service-secondary: #0284c7;
+            --service-glow: rgba(56, 189, 248, 0.35);
+            --service-light: rgba(56, 189, 248, 0.12);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Ambient Dynamic Volumetric Glow (Ánh sáng khối không gian) */
+        .ambient-aurora {
+            position: fixed;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120vw;
+            height: 90vh;
+            background: radial-gradient(ellipse at 50% 30%, var(--service-glow) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(80px);
+            opacity: 0.85;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Top Minimalist Fluid Nav */
+        .nav-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(5, 7, 13, 0.6);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .brand-logo-fluid {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #fff;
+        }
+        .brand-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--service-color);
+            box-shadow: 0 0 14px var(--service-color);
+            transition: all 0.5s;
+        }
+        .brand-name {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        /* Seamless Frameless Service Switcher (Thanh trượt chuyển dịch vụ mềm mại) */
+        .service-nav-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px;
+            border-radius: 999px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+        }
+        .service-tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 22px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 2;
+        }
+        .service-tab-btn:hover {
+            color: #ffffff;
+        }
+        .service-tab-btn.active {
+            color: #ffffff;
+        }
+
+        /* Pill Active Indicator */
+        .tab-indicator {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            height: calc(100% - 12px);
+            border-radius: 999px;
+            background: var(--service-color);
+            box-shadow: 0 0 20px var(--service-glow);
+            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 50px 32px 100px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* BORDERLESS / FRAMELESS HERO (Hoàn toàn không đóng hộp, hòa tan vào nền) */
+        .frameless-hero {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            align-items: center;
+            gap: 50px;
+            min-height: 520px;
+            margin-bottom: 70px;
+        }
+        @media (max-width: 960px) {
+            .frameless-hero { grid-template-columns: 1fr; text-align: center; }
+        }
+
+        .hero-info-col {
+            position: relative;
+        }
+        .fluid-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--service-color);
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            transition: color 0.5s;
+        }
+        .hero-title {
+            font-size: clamp(34px, 5.2vw, 56px);
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -1.2px;
+            margin-bottom: 22px;
+            color: #ffffff;
+        }
+        .hero-title span.highlight {
+            color: var(--service-color);
+            transition: color 0.5s;
+            text-shadow: 0 0 30px var(--service-glow);
+        }
+        .hero-lead {
+            font-size: 17px;
+            line-height: 1.75;
+            color: #94a3b8;
+            max-width: 580px;
+            margin-bottom: 34px;
+        }
+
+        .cta-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 960px) {
+            .cta-group { justify-content: center; }
+        }
+        .btn-fluid-primary {
+            background: var(--service-color);
+            color: #05070d;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 16px 36px;
+            border-radius: 999px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px var(--service-glow);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-fluid-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px var(--service-glow);
+        }
+        .btn-fluid-ghost {
+            color: #cbd5e1;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.25s;
+        }
+        .btn-fluid-ghost:hover {
+            color: var(--service-color);
+        }
+
+        /* FRAMELESS MEDIA VISUAL (Bỏ khung viền, viền ảnh tan biến dạng Gradient Mask) */
+        .hero-visual-col {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+        .visual-blend-container {
+            position: relative;
+            width: 100%;
+            max-width: 540px;
+            height: 480px;
+        }
+        /* MẶT NẠ LÀM MỜ BIÊN (GRADIENT MASK) - Không có bất kỳ đường viền cứng nào */
+        .visual-img-element {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 28px;
+            mask-image: radial-gradient(circle at center, black 65%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 65%, transparent 100%);
+            opacity: 0;
+            transform: scale(0.96) translateY(20px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .visual-img-element.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Floating Floating Feature Pills (Các viên nang nổi không khung viền) */
+        .floating-feature {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            padding: 12px 20px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            animation: float 4s ease-in-out infinite alternate;
+        }
+        .pill-pos-1 { bottom: 25px; left: -20px; }
+        .pill-pos-2 { top: 30px; right: -20px; animation-delay: -2s; }
+        @keyframes float {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-12px); }
+        }
+        .feature-icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--service-light);
+            color: var(--service-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .feature-text-main { font-size: 14px; font-weight: 800; color: #fff; }
+        .feature-text-sub { font-size: 11px; color: #94a3b8; font-family: var(--font-mono); }
+
+        /* SEAMLESS FLUID TILES (Danh sách tính năng phi khung) */
+        .frameless-tiles-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 36px;
+            margin-top: 40px;
+        }
+        @media (max-width: 960px) {
+            .frameless-tiles-grid { grid-template-columns: 1fr; gap: 24px; }
+        }
+
+        .fluid-tile {
+            position: relative;
+            padding: 24px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            transition: border-color 0.4s;
+        }
+        .fluid-tile:hover {
+            border-top-color: var(--service-color);
+        }
+        .tile-num {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--service-color);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .tile-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .tile-desc {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* Seamless Real Border Gateway Showcase (Thanh dải ảnh thực địa uốn cong không viền) */
+        .gateway-scroll-wrap {
+            margin-top: 80px;
+            position: relative;
+        }
+        .section-header-clean {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .sec-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+        .sec-sub {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .gateway-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 860px) {
+            .gateway-strip { grid-template-columns: 1fr 1fr; }
+        }
+
+        .gateway-item {
+            position: relative;
+            height: 220px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #0d1527;
+        }
+        .gateway-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            filter: brightness(0.9);
+        }
+        .gateway-item:hover img {
+            transform: scale(1.08);
+            filter: brightness(1.05);
+        }
+        .gateway-content {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 24px 16px 14px;
+            background: linear-gradient(180deg, transparent 0%, rgba(5, 7, 13, 0.95) 100%);
+        }
+        .gw-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--service-color);
+            font-family: var(--font-mono);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .gw-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="mode-visarun">
+
+    <!-- Ambient Aurora Glow -->
+    <div class="ambient-aurora"></div>
+
+    <!-- Top Minimalist Fluid Nav -->
+    <header class="nav-wrap">
+        <a href="#" class="brand-logo-fluid">
+            <span class="brand-dot"></span>
+            <span class="brand-name">EASY TRIP &amp; VISA</span>
+        </a>
+
+        <!-- Service Tab Switcher (Chuyển đổi 3 dịch vụ) -->
+        <nav class="service-nav-pill">
+            <span class="tab-indicator" id="tab-indicator"></span>
+            <button class="service-tab-btn active" onclick="selectService('visarun', this)">
+                <span>🌲</span>
+                <span>Visarun Đường Bộ</span>
+            </button>
+            <button class="service-tab-btn" onclick="selectService('evisa', this)">
+                <span>🇻🇳</span>
+                <span>E-Visa Việt Nam</span>
+            </button>
+            <button class="service-tab-btn" onclick="selectService('fasttrack', this)">
+                <span>✈️</span>
+                <span>VIP Fast Track</span>
+            </button>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- BORDERLESS HERO SECTION (Chuyển động ra vào mượt mà theo từng dịch vụ) -->
+        <section class="frameless-hero">
+            
+            <!-- Left Info Column -->
+            <div class="hero-info-col">
+                <div class="fluid-badge" id="service-badge">
+                    <span>●</span>
+                    <span id="badge-text">DỊCH VỤ XE BUÝT GIƯỜNG NẰM LIÊN VẬN QUỐC TẾ</span>
+                </div>
+
+                <h1 class="hero-title" id="hero-title">
+                    Visarun Nha Trang ⇄ Lào &amp; Campuchia <br>
+                    <span class="highlight">Đêm khởi hành 21:30</span>
+                </h1>
+
+                <p class="hero-lead" id="hero-lead">
+                    Xe giường nằm VIP 20 cabin riêng biệt khởi hành cố định Thứ 3, Thứ 5, Chủ Nhật từ 40 Hòn Chồng &amp; 04 Trần Phú. Đưa đón trọn gói qua Cửa khẩu Quốc tế Bờ Y (Lào) và Mộc Bài (Campuchia).
+                </p>
+
+                <div class="cta-group">
+                    <a href="https://t.me/Easy_Trip_Visa_bot" target="_blank" class="btn-fluid-primary" id="cta-button">
+                        <span>Giữ chỗ &amp; Chọn số ghế cabin</span>
+                        <span>➜</span>
+                    </a>
+                    <a href="#gateways" class="btn-fluid-ghost">
+                        <span>Xem thực tế 4 cửa khẩu</span>
+                        <span>↓</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Visual Column (Ảnh tan biến mềm mại, không viền hộp) -->
+            <div class="hero-visual-col">
+                <div class="visual-blend-container">
+                    
+                    <!-- Ảnh 1: Visarun (Xe buýt VIP cabin) -->
+                    <img src="vve_sleeper_bus.png" id="img-visarun" class="visual-img-element active" alt="Sleeper Bus Visarun">
+
+                    <!-- Ảnh 2: E-Visa Việt Nam (Thị thực & Dấu mộc Vàng Đỏ) -->
+                    <img src="vve_evisa.png" id="img-evisa" class="visual-img-element" alt="Vietnam E-Visa Official">
+
+                    <!-- Ảnh 3: Fast Track Sân Bay (Hàng không Blue Sky) -->
+                    <img src="vve_fast_track.png" id="img-fasttrack" class="visual-img-element" alt="VIP Airport Fast Track">
+
+                    <!-- Floating Pill 1 (Bottom Left) -->
+                    <div class="floating-feature pill-pos-1">
+                        <div class="feature-icon-circle" id="pill-icon-1">🚌</div>
+                        <div>
+                            <div class="feature-text-main" id="pill-title-1">3.400.000 ₫</div>
+                            <div class="feature-text-sub" id="pill-sub-1">Combo Bus + E-Visa 90D</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Pill 2 (Top Right) -->
+                    <div class="floating-feature pill-pos-2">
+                        <div class="feature-icon-circle" id="pill-icon-2">💛</div>
+                        <div>
+                            <div class="feature-text-main" id="pill-title-2">100% Free Bus</div>
+                            <div class="feature-text-sub" id="pill-sub-2">Trẻ em &lt; 9 tuổi (Babysitter VN)</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- FRAMELESS TILES (3 Trụ cột dịch vụ không viền) -->
+        <section class="frameless-tiles-grid" id="tiles-grid">
+            
+            <div class="fluid-tile">
+                <span class="tile-num" id="tile-num-1">01 / TỐC ĐỘ</span>
+                <div class="tile-title" id="tile-title-1">Khởi hành 21:30 Xuyên Đêm</div>
+                <div class="tile-desc" id="tile-desc-1">
+                    Hành trình ngủ đêm trên xe, sáng sớm 06:00 đến cửa khẩu Bờ Y / Mộc Bài, hoàn tất thủ tục xuất nhập cảnh và trở về Nha Trang trong ngày lúc 18:30.
+                </div>
+            </div>
+
+            <div class="fluid-tile">
+                <span class="tile-num" id="tile-num-2">02 / TRỢ GIÁ GIA ĐÌNH</span>
+                <div class="tile-title" id="tile-title-2">Babysitter Vietnam</div>
+                <div class="tile-desc" id="tile-desc-2">
+                    Miễn phí 100% vé xe buýt cho trẻ em dưới 9 tuổi nằm chung giường với bố mẹ. Gói E-Visa khẩn trợ giá chỉ 1.480.000 ₫ cho các gia đình expat.
+                </div>
+            </div>
+
+            <div class="fluid-tile">
+                <span class="tile-num" id="tile-num-3">03 / MINH BẠCH</span>
+                <div class="tile-title" id="tile-title-3">Định Vị Sơ Đồ Ghế Trực Tiếp</div>
+                <div class="tile-desc" id="tile-desc-3">
+                    Hệ thống gửi sơ đồ chỗ ngồi thực tế, khách tự do lựa chọn vị trí giường tầng dưới (êm ái) hoặc tầng trên (thoáng mát) trước khi thanh toán.
+                </div>
+            </div>
+
+        </section>
+
+        <!-- SEAMLESS BORDER GATEWAYS SHOWCASE -->
+        <section class="gateway-scroll-wrap" id="gateways">
+            <div class="section-header-clean">
+                <div>
+                    <h2 class="sec-title">Hạ tầng Cửa khẩu &amp; Tuyến vận hành liên vận</h2>
+                    <p class="sec-sub">Hình ảnh thực địa tại các trạm biên phòng và cảng hàng không quốc tế</p>
+                </div>
+            </div>
+
+            <div class="gateway-strip">
+                <div class="gateway-item">
+                    <img src="vve_bo_y_border.png" alt="Cửa khẩu Bờ Y Lào">
+                    <div class="gateway-content">
+                        <span class="gw-tag">CỬA KHẨU ĐƯỜNG BỘ</span>
+                        <div class="gw-name">Lào Bờ Y (Kon Tum)</div>
+                    </div>
+                </div>
+
+                <div class="gateway-item">
+                    <img src="vve_moc_bai_border.png" alt="Cửa khẩu Mộc Bài Campuchia">
+                    <div class="gateway-content">
+                        <span class="gw-tag">CỬA KHẨU ĐƯỜNG BỘ</span>
+                        <div class="gw-name">Campuchia Mộc Bài</div>
+                    </div>
+                </div>
+
+                <div class="gateway-item">
+                    <img src="vve_lao_bao_border.png" alt="Cửa khẩu Lao Bảo Đà Nẵng">
+                    <div class="gateway-content">
+                        <span class="gw-tag">CỬA KHẨU ĐƯỜNG BỘ</span>
+                        <div class="gw-name">Lào Lao Bảo (Đà Nẵng)</div>
+                    </div>
+                </div>
+
+                <div class="gateway-item">
+                    <img src="vve_fast_track.png" alt="VIP Sân bay Cam Ranh DAD SGN">
+                    <div class="gateway-content">
+                        <span class="gw-tag">CẢNG HÀNG KHÔNG</span>
+                        <div class="gw-name">Cam Ranh, Đà Nẵng, SGN</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Live Dynamic Content & Theme Switcher Script -->
+    <script>
+        const SERVICES_DATA = {
+            'visarun': {
+                modeClass: 'mode-visarun',
+                badge: 'DỊCH VỤ XE BUÝT GIƯỜNG NẰM LIÊN VẬN QUỐC TẾ',
+                title: 'Visarun Nha Trang ⇄ Lào & Campuchia <br><span class="highlight">Đêm khởi hành 21:30</span>',
+                lead: 'Xe giường nằm VIP 20 cabin riêng biệt khởi hành cố định Thứ 3, Thứ 5, Chủ Nhật từ 40 Hòn Chồng & 04 Trần Phú. Đưa đón trọn gói qua Cửa khẩu Quốc tế Bờ Y (Lào) và Mộc Bài (Campuchia).',
+                cta: 'Giữ chỗ & Chọn số ghế cabin',
+                pill1: { icon: '🚌', title: '3.400.000 ₫', sub: 'Combo Bus + E-Visa 90D' },
+                pill2: { icon: '💛', title: '100% Free Bus', sub: 'Trẻ em < 9 tuổi (Babysitter VN)' },
+                tiles: [
+                    { num: '01 / TỐC ĐỘ', title: 'Khởi hành 21:30 Xuyên Đêm', desc: 'Hành trình ngủ đêm trên xe, sáng sớm 06:00 đến cửa khẩu Bờ Y / Mộc Bài, hoàn tất thủ tục xuất nhập cảnh và trở về Nha Trang trong ngày lúc 18:30.' },
+                    { num: '02 / TRỢ GIÁ GIA ĐÌNH', title: 'Babysitter Vietnam', desc: 'Miễn phí 100% vé xe buýt cho trẻ em dưới 9 tuổi nằm chung giường với bố mẹ. Gói E-Visa khẩn trợ giá chỉ 1.480.000 ₫ cho các gia đình expat.' },
+                    { num: '03 / MINH BẠCH', title: 'Định Vị Sơ Đồ Ghế Trực Tiếp', desc: 'Hệ thống gửi sơ đồ chỗ ngồi thực tế, khách tự do lựa chọn vị trí giường tầng dưới (êm ái) hoặc tầng trên (thoáng mát) trước khi thanh toán.' }
+                ]
+            },
+            'evisa': {
+                modeClass: 'mode-evisa',
+                badge: 'CỔNG THỊ THỰC ĐIỆN TỬ VIỆT NAM (THITHUCDIENTU.GOV.VN)',
+                title: 'E-Visa 90 Ngày Khẩn Cấp <br><span class="highlight">Duyệt Siêu Tốc 1H – 4H</span>',
+                lead: 'Xử lý trực tiếp qua hệ thống Cục Quản lý Xuất nhập cảnh Việt Nam. Trả file PDF chính thức có mã QR xác thực để lên máy bay hoặc qua cửa khẩu đường bộ an toàn 100%.',
+                cta: 'Đăng ký E-Visa khẩn trong ngày',
+                pill1: { icon: '⚡', title: '2.000.000 ₫', sub: 'Khẩn 4 Giờ (Nhận trong ngày)' },
+                pill2: { icon: '🇻🇳', title: '90 Ngày Lưu Trú', sub: 'Single / Multiple Entry' },
+                tiles: [
+                    { num: '01 / THỜI GIAN', title: 'Gói Cấp Tốc 1h – 4h', desc: 'Cứu nguy các trường hợp sắp đến giờ bay, quá hạn visa hoặc cần xuất cảnh gấp. Tiếp nhận hồ sơ liên tục từ 08:00 đến 14:00 mỗi ngày làm việc.' },
+                    { num: '02 / TIÊU CHUẨN ICAO', title: 'Kiểm Định Hộ Chiếu & Ảnh Thẻ', desc: 'Kiểm tra kỹ thuật vùng đọc máy MRZ và ảnh chân dung nền trắng, đảm bảo hồ sơ không bị từ chối hoặc yêu cầu sửa đổi làm trễ chuyến bay.' },
+                    { num: '03 / BẢO TOÀN THỜI HẠN', title: 'Kích Hoạt Đúng Ngày Nhập Cảnh', desc: 'E-Visa được tính ngày bắt đầu có hiệu lực khớp với lịch trình hạ cánh, giúp quý khách tận hưởng trọn vẹn 90 ngày lưu trú tại Việt Nam.' }
+                ]
+            },
+            'fasttrack': {
+                modeClass: 'mode-fasttrack',
+                badge: 'DỊCH VỤ ĐÓN TIỄN VIP FAST TRACK SÂN BAY QUỐC TẾ',
+                title: 'VIP Fast Track Sân Bay <br><span class="highlight">Làn Ưu Tiên Không Chờ Đợi</span>',
+                lead: 'Chuyên viên đón tiếp tận cửa máy bay tại Cam Ranh (CXR), Đà Nẵng (DAD), Tân Sơn Nhất (SGN), Nội Bài (HAN). Hỗ trợ làm thủ tục hải quan và nhận hành lý ưu tiên.',
+                cta: 'Đặt dịch vụ VIP Fast Track ($70)',
+                pill1: { icon: '✈️', title: '1.855.000 ₫ ($70)', sub: 'Sân bay CXR, DAD, PQC' },
+                pill2: { icon: '⭐', title: '1.200.000 ₫', sub: 'Sân bay Tân Sơn Nhất & HAN' },
+                tiles: [
+                    { num: '01 / ĐÓN TIỄN TẬN CỬA', title: 'Nhân Viên Cầm Biển Đón', desc: 'Ngay khi bước ra khỏi ống lồng máy bay, chuyên viên Easy Trip đón quý khách với bảng tên riêng và hướng dẫn vào làn thủ tục VIP riêng biệt.' },
+                    { num: '02 / TỐC ĐỘ VƯỢT TRỘI', title: 'Tiết Kiệm 45 – 90 Phút', desc: 'Bỏ qua hàng dài xếp hàng chờ đợi tại khu vực nhập cảnh, đặc biệt vào các khung giờ cao điểm có nhiều chuyến bay quốc tế hạ cánh cùng lúc.' },
+                    { num: '03 / HỖ TRỢ HÀNH LÝ & XE', title: 'Hỗ Trợ Hành Lý & Trung Chuyển', desc: 'Hỗ trợ lấy hành lý ký gửi nhanh chóng và dẫn quý khách ra xe đưa đón về khách sạn hoặc resort an toàn, chu đáo.' }
+                ]
+            }
+        };
+
+        function selectService(serviceKey, btnElement) {
+            // Update active button
+            document.querySelectorAll('.service-tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // Move indicator pill
+            const indicator = document.getElementById('tab-indicator');
+            indicator.style.width = btnElement.offsetWidth + 'px';
+            indicator.style.left = btnElement.offsetLeft + 'px';
+
+            // Switch body mode
+            document.body.className = SERVICES_DATA[serviceKey].modeClass;
+
+            // Switch visual images with smooth fade-scale
+            document.querySelectorAll('.visual-img-element').forEach(img => img.classList.remove('active'));
+            const targetImg = document.getElementById('img-' + serviceKey);
+            if (targetImg) targetImg.classList.add('active');
+
+            // Switch text content with smooth transitions
+            const data = SERVICES_DATA[serviceKey];
+            document.getElementById('badge-text').innerText = data.badge;
+            document.getElementById('hero-title').innerHTML = data.title;
+            document.getElementById('hero-lead').innerText = data.lead;
+            document.getElementById('cta-button').firstElementChild.innerText = data.cta;
+
+            // Update pills
+            document.getElementById('pill-icon-1').innerText = data.pill1.icon;
+            document.getElementById('pill-title-1').innerText = data.pill1.title;
+            document.getElementById('pill-sub-1').innerText = data.pill1.sub;
+
+            document.getElementById('pill-icon-2').innerText = data.pill2.icon;
+            document.getElementById('pill-title-2').innerText = data.pill2.title;
+            document.getElementById('pill-sub-2').innerText = data.pill2.sub;
+
+            // Update tiles
+            data.tiles.forEach((t, i) => {
+                const idx = i + 1;
+                document.getElementById(`tile-num-${idx}`).innerText = t.num;
+                document.getElementById(`tile-title-${idx}`).innerText = t.title;
+                document.getElementById(`tile-desc-${idx}`).innerText = t.desc;
+            });
+        }
+
+        // Initialize indicator position
+        window.addEventListener('load', () => {
+            const activeBtn = document.querySelector('.service-tab-btn.active');
+            if (activeBtn) {
+                const indicator = document.getElementById('tab-indicator');
+                indicator.style.width = activeBtn.offsetWidth + 'px';
+                indicator.style.left = activeBtn.offsetLeft + 'px';
+            }
+        });
+    </script>
+</body>
+</html>
