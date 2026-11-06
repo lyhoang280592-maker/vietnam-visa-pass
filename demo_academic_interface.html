@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Academic & Institutional Service Architecture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #080C14;
+            --bg-card: rgba(15, 23, 42, 0.65);
+            --bg-card-hover: rgba(30, 41, 59, 0.75);
+            --border-subtle: rgba(56, 189, 248, 0.15);
+            --border-active: rgba(0, 240, 255, 0.5);
+            --cyan-primary: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.25);
+            --blue-accent: #38bdf8;
+            --emerald-online: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+            background-position: -1px -1px;
+        }
+
+        /* Top Institutional Header */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(8, 12, 20, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-badge {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--border-active);
+            color: var(--cyan-primary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+        }
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .telemetry-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--emerald-online);
+            box-shadow: 0 0 8px var(--emerald-online);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* Academic Hero Header */
+        .academic-hero {
+            text-align: center;
+            max-width: 860px;
+            margin: 0 auto 50px;
+        }
+        .doc-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--blue-accent);
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 6px 16px;
+            border-radius: 999px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: clamp(28px, 4.5vw, 44px);
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            line-height: 1.25;
+            margin-bottom: 18px;
+            background: linear-gradient(180deg, #ffffff 40%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-desc {
+            font-size: 16px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* Grid Layout */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 900px) {
+            .grid-2col { grid-template-columns: 1fr; }
+        }
+
+        /* Institutional Cards */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan-primary), transparent);
+            opacity: 0.3;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+        .code-tag {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--cyan-primary);
+            background: rgba(0, 240, 255, 0.08);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        /* Academic Timeline Algorithm Component */
+        .tab-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: rgba(8, 12, 20, 0.6);
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 10px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .tab-btn.active {
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--cyan-primary);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+        }
+
+        /* Algorithmic Stage Bars */
+        .stage-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .stage-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .stage-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stage-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--blue-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .stage-time {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--cyan-primary);
+        }
+
+        /* Mathematical Metric Callouts */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .metric-box {
+            background: rgba(8, 12, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+        }
+        .metric-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Logistical Telemetry Protocol (Bus Timeline) */
+        .telemetry-timeline {
+            position: relative;
+            padding-left: 28px;
+        }
+        .telemetry-timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background: linear-gradient(180deg, var(--cyan-primary) 0%, rgba(56, 189, 248, 0.2) 100%);
+        }
+        .telemetry-node {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .telemetry-node:last-child { margin-bottom: 0; }
+        .node-pin {
+            position: absolute;
+            left: -28px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--bg-base);
+            border: 2px solid var(--cyan-primary);
+            box-shadow: 0 0 8px var(--cyan-glow);
+        }
+        .node-time {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--cyan-primary);
+            margin-bottom: 2px;
+        }
+        .node-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .node-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Legal & Regulatory Index Panel */
+        .law-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.4);
+            margin-bottom: 10px;
+            border-left: 3px solid var(--blue-accent);
+        }
+        .law-code {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--blue-accent);
+            white-space: nowrap;
+        }
+        .law-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-active);
+            border-radius: 12px;
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 30px;
+            backdrop-filter: blur(12px);
+        }
+        @media (max-width: 768px) {
+            .action-bar { flex-direction: column; gap: 16px; text-align: center; }
+        }
+        .action-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .action-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .btn-launch {
+            background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+            color: #070d19;
+            font-family: var(--font-sans);
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px var(--cyan-glow);
+            white-space: nowrap;
+        }
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Nav: Institutional Status Bar -->
+    <header class="top-nav">
+        <div class="nav-brand">
+            <span class="brand-badge">SOP-2026.04</span>
+            <span class="brand-title">EASY TRIP & VISA — CENTRAL OPERATIONS MATRIX</span>
+        </div>
+        <div class="telemetry-status">
+            <span class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span>TELEMETRY: ACTIVE</span>
+            </span>
+            <span>IMMIGRATION API: SYNCHRONIZED</span>
+            <span>TIME: 21:00 UTC+7</span>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Academic Hero Header -->
+        <div class="academic-hero">
+            <div class="doc-meta">
+                <span>LEGAL SPECIFICATION: LAW NO. 23/2023/QH15</span>
+                <span>•</span>
+                <span>ICAO 9303 BIOMETRICS</span>
+            </div>
+            <h1>Academic Service Architecture & Logistical Protocol</h1>
+            <p class="hero-desc">
+                Mô hình giải thuật tính toán chu kỳ thị thực 90 ngày, quy trình trung chuyển xe buýt liên vận quốc tế (Nha Trang ⇄ Lào Bờ Y / Campuchia Mộc Bài) và giao thức dự phòng an toàn hàng không.
+            </p>
+        </div>
+
+        <!-- 2-Column Scientific Panels -->
+        <div class="grid-2col">
+
+            <!-- PANEL 1: Algorithmic Visa Processing Engine -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <span>📊</span>
+                        <span>E-Visa Processing Timeline Engine</span>
+                    </span>
+                    <span class="code-tag" id="active-package-tag">TIER: 4H_EXPRESS</span>
+                </div>
+
+                <!-- Tab Selector for Tiers -->
+                <div class="tab-selector">
+                    <button class="tab-btn active" onclick="switchTier('4h')">⚡ 4 Giờ</button>
+                    <button class="tab-btn" onclick="switchTier('1d')">⏱️ 1 Ngày</button>
+                    <button class="tab-btn" onclick="switchTier('2d')">📅 2 Ngày</button>
+                    <button class="tab-btn" onclick="switchTier('3d')">🏖️ 3–5 Ngày</button>
+                </div>
+
+                <!-- Live Algorithmic Timeline -->
+                <div class="stage-box" id="timeline-stages">
+                    <!-- Dynamic rendering via JS -->
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <div class="metric-label">Chi phí theo website</div>
+                        <div class="metric-value" id="price-display">2.000.000 ₫</div>
+                        <div class="metric-sub" id="price-sub">Khách Nga (Single 90D)</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Vùng đệm an toàn bay</div>
+                        <div class="metric-value" id="buffer-display">+14 Giờ</div>
+                        <div class="metric-sub">Trước giờ bay về VN</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: Logistical Telemetry Protocol (Bus Journey) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <span>🚌</span>
+                        <span>Cross-Border Sleeper Bus Protocol (Nha Trang ⇄ Lào Bờ Y)</span>
+                    </span>
+                    <span class="code-tag">FREQ: T3, T5, CN</span>
+                </div>
+
+                <div class="telemetry-timeline">
+                    <div class="telemetry-node">
+                        <span class="node-pin"></span>
+                        <div class="node-time">21:00 – 21:30 (T3, T5, CN)</div>
+                        <div class="node-title">Tập trung & Khởi hành từ Nha Trang</div>
+                        <div class="node-desc">Đón tại 40 Hòn Chồng (Oceanus) & Số 4 Trần Phú. Khoang giường nằm VIP 20 cabin riêng biệt.</div>
+                    </div>
+
+                    <div class="telemetry-node">
+                        <span class="node-pin"></span>
+                        <div class="node-time">06:00 (Sáng hôm sau)</div>
+                        <div class="node-title">Tiếp cận Trạm Cửa khẩu Quốc tế Bờ Y (Kon Tum)</div>
+                        <div class="node-desc">Hành khách nghỉ ngơi, ăn sáng, cafe trước giờ làm việc của Biên phòng (07:00).</div>
+                    </div>
+
+                    <div class="telemetry-node">
+                        <span class="node-pin"></span>
+                        <div class="node-time">07:00 – 08:30</div>
+                        <div class="node-title">Quy trình trung chuyển vùng đệm (Neutral Transit Protocol)</div>
+                        <div class="node-desc">Xuất cảnh Việt Nam ➜ Đi bộ sang cửa khẩu Lào đóng dấu nhập/xuất ➜ Quay về cửa khẩu VN.</div>
+                    </div>
+
+                    <div class="telemetry-node">
+                        <span class="node-pin"></span>
+                        <div class="node-time">09:30 – 18:30</div>
+                        <div class="node-title">Nhập cảnh 90 Ngày mới & Hồi hương Nha Trang</div>
+                        <div class="node-desc">Hải quan đóng dấu mộc lưu trú 90 ngày mới bảo toàn trọn vẹn. Xe về lại Nha Trang lúc 18:30.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2-Column: Legal Compliance & Humanitarian Program -->
+        <div class="grid-2col">
+            
+            <!-- PANEL 3: Legal & Regulatory Reference Matrix -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <span>⚖️</span>
+                        <span>Căn cứ pháp lý & Chuẩn mực xác thực ICAO</span>
+                    </span>
+                    <span class="code-tag">LEGAL COMPLIANCE</span>
+                </div>
+
+                <div class="law-item">
+                    <span class="law-code">Luật 23/2023</span>
+                    <span class="law-text">Nâng thời hạn thị thực điện tử (E-visa) lên tối đa 90 ngày (Single/Multi) có giá trị xuất nhập cảnh qua 42 cửa khẩu quốc tế.</span>
+                </div>
+
+                <div class="law-item">
+                    <span class="law-code">NQ 127/NQ-CP</span>
+                    <span class="law-text">Áp dụng cấp E-visa cho công dân tất cả các quốc gia và vùng lãnh thổ trên toàn thế giới từ 15/08/2023.</span>
+                </div>
+
+                <div class="law-item">
+                    <span class="law-code">ICAO 9303</span>
+                    <span class="law-text">Tiêu chuẩn kiểm định ảnh hộ chiếu & Machine Readable Zone (MRZ), bảo đảm tỷ lệ phê duyệt hợp lệ 100%.</span>
+                </div>
+            </div>
+
+            <!-- PANEL 4: Babysitter Vietnam Humanitarian Specification -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <span>💛</span>
+                        <span>Chương trình xã hội Babysitter Vietnam (Trẻ &lt; 9 tuổi)</span>
+                    </span>
+                    <span class="code-tag">SUBSIDIZED: 1.480.000 ₫</span>
+                </div>
+
+                <div style="font-size: 13px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px;">
+                    Chính sách trợ giá nhân đạo hỗ trợ các gia đình người nước ngoài sinh sống và làm việc lâu năm tại Việt Nam có con nhỏ dưới 9 tuổi:
+                </div>
+
+                <div class="stage-row" style="margin-bottom: 8px;">
+                    <span>🚌 Vé xe buýt giường nằm liên vận</span>
+                    <span style="color: var(--emerald-online); font-family: var(--font-mono); font-weight: 700;">MIỄN PHÍ 100% (0 ₫)</span>
+                </div>
+
+                <div class="stage-row" style="margin-bottom: 8px;">
+                    <span>⚡ E-Visa khẩn cấp cấp tốc 3–4 giờ</span>
+                    <span style="color: var(--cyan-primary); font-family: var(--font-mono); font-weight: 700;">1.480.000 ₫</span>
+                </div>
+
+                <div class="stage-row">
+                    <span>🛏️ Quy chuẩn bố trí cabin</span>
+                    <span style="color: var(--text-main); font-family: var(--font-mono);">Nằm chung giường với bố mẹ</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Institutional Action Bar -->
+        <div class="action-bar">
+            <div>
+                <div class="action-title">Hệ thống Điều hành Visarun & E-Visa Easy Trip</div>
+                <div class="action-sub">Tư vấn tự động, giữ chỗ cabin xe buýt và kiểm tra sơ đồ ghế trực tiếp 24/7</div>
+            </div>
+            <a href="https://t.me/Easy_Trip_Visa_bot" target="_blank" class="btn-launch">
+                Khởi động Bot Telegram (@Easy_Trip_Visa_bot) ➜
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Live Algorithmic Script -->
+    <script>
+        const TIERS_DATA = {
+            '4h': {
+                tag: 'TIER: 4H_EXPRESS',
+                price: '2.000.000 ₫',
+                priceSub: 'Khách Nga (Single 90D) • 4.6M (1h) / 3.4M (2h)',
+                buffer: '+14 Giờ',
+                stages: [
+                    { num: '01', title: 'Thu thập hồ sơ & Kiểm định ICAO', time: '13:30 (Trong ngày)' },
+                    { num: '02', title: 'Xử lý qua Cổng dịch vụ công Xuất nhập cảnh', time: '14:00 – 17:00' },
+                    { num: '03', title: 'Bàn giao E-visa PDF chính thức', time: '17:30 (Trong ngày)' },
+                    { num: '04', title: 'Kích hoạt mộc lưu trú tại cửa khẩu', time: '08:00 (Sáng hôm sau)' }
+                ]
+            },
+            '1d': {
+                tag: 'TIER: 1_WORKING_DAY',
+                price: '1.810.000 ₫',
+                priceSub: 'Khách Nga (Single 90D) • 2.81M (Multi)',
+                buffer: '+16 Giờ',
+                stages: [
+                    { num: '01', title: 'Tiếp nhận hồ sơ & Xếp lượt duyệt', time: '13:30 (Ngày T)' },
+                    { num: '02', title: 'Phê duyệt hệ thống hải quan trung ương', time: 'Ngày T+1 làm việc' },
+                    { num: '03', title: 'Bàn giao E-visa có mã vạch điện tử', time: '17:30 Ngày T+1' },
+                    { num: '04', title: 'Nhập cảnh bảo toàn 90 ngày', time: 'Ngày T+2' }
+                ]
+            },
+            '2d': {
+                tag: 'TIER: 2_WORKING_DAYS',
+                price: '1.760.000 ₫',
+                priceSub: 'Khách Nga (Single 90D) • 2.76M (Multi)',
+                buffer: '+24 Giờ',
+                stages: [
+                    { num: '01', title: 'Đăng ký chỉ số sinh trắc học', time: '13:30 Ngày T' },
+                    { num: '02', title: 'Xử lý tiêu chuẩn 2 ngày làm việc', time: 'Trừ Thứ 7 & CN' },
+                    { num: '03', title: 'Xuất file kiểm tra thông tin', time: '17:30 Ngày T+2' },
+                    { num: '04', title: 'Kích hoạt hạn visa tại cửa khẩu', time: 'Ngày T+3' }
+                ]
+            },
+            '3d': {
+                tag: 'TIER: 3_5_DAYS_STANDARD',
+                price: '1.610.000 ₫',
+                priceSub: 'Khách Nga (Single 90D) • 2.61M (Multi)',
+                buffer: 'Tiết kiệm tối đa',
+                stages: [
+                    { num: '01', title: 'Nộp hồ sơ theo kế hoạch dài ngày', time: 'Trước 5 ngày làm việc' },
+                    { num: '02', title: 'Duyệt thường theo danh sách tổng hợp', time: '3–5 ngày làm việc' },
+                    { num: '03', title: 'Nhận kết quả E-visa chính thức', time: '17:30 Ngày duyệt' },
+                    { num: '04', title: 'Khởi hành xe buýt hoặc chuyến bay', time: 'Theo lịch trình' }
+                ]
+            }
+        };
+
+        function switchTier(tierKey) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const data = TIERS_DATA[tierKey];
+            document.getElementById('active-package-tag').innerText = data.tag;
+            document.getElementById('price-display').innerText = data.price;
+            document.getElementById('price-sub').innerText = data.priceSub;
+            document.getElementById('buffer-display').innerText = data.buffer;
+
+            const stagesContainer = document.getElementById('timeline-stages');
+            stagesContainer.innerHTML = data.stages.map(s => `
+                <div class="stage-row">
+                    <div class="stage-info">
+                        <span class="stage-badge">${s.num}</span>
+                        <span>${s.title}</span>
+                    </div>
+                    <span class="stage-time">${s.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // Initialize default tier
+        switchTier('4h');
+    </script>
+</body>
+</html>
