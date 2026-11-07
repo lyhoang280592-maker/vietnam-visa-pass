@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Chòm Sao Ả Rập Chuyển Động Thưa Thoáng & Tương Tác</title>
+    <!-- Phông chữ Cairo & Amiri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Amiri:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-base: #061A14;
+            --gold-primary: #D4AF37;
+            --gold-bright: #F5D77F;
+            --gold-glow: rgba(212, 175, 55, 0.45);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: #f8fafc;
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* KHUNG ĐIỀU KHIỂN DÀNH CHO BẠN (TOP BAR) */
+        .control-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(6, 26, 20, 0.95);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            direction: ltr; /* Để người quản trị đọc tiếng Việt */
+        }
+
+        .bar-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--gold-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .density-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            color: #d1d5db;
+            padding: 7px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: var(--gold-primary);
+            color: #fff;
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, #D4AF37, #B8860B);
+            color: #061A14;
+            font-weight: 800;
+            border-color: #F5D77F;
+            box-shadow: 0 0 16px rgba(212, 175, 55, 0.4);
+        }
+
+        /* CANVAS CHÒM SAO DI CHUYỂN NẰM DƯỚI CÙNG (POINTER-EVENTS: NONE ĐỂ KHÔNG CHẶN CLICK) */
+        #constellationCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* HÀO QUANG ĐỈNH VƯƠNG GIẢ */
+        .ambient-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 600px;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(ellipse at 50% -10%, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+        }
+
+        /* KHU VỰC NỘI DUNG MÔ PHỎNG NGUYÊN BẢN (KHÔNG BỊ ẢNH HƯỞNG) */
+        .demo-section {
+            position: relative;
+            z-index: 10;
+            min-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+            direction: rtl;
+            text-align: right;
+        }
+
+        .badge-vip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            padding: 8px 20px;
+            border-radius: 999px;
+            color: var(--gold-bright);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+
+        .hero-title {
+            font-size: 46px;
+            font-weight: 900;
+            line-height: 1.35;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
+        }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #F5D77F, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #D1E7DD;
+            line-height: 1.8;
+            max-width: 720px;
+            margin-bottom: 36px;
+        }
+
+        .cta-gold-btn {
+            background: linear-gradient(135deg, #D4AF37, #B8860B);
+            color: #061A14;
+            font-weight: 800;
+            font-size: 16px;
+            padding: 16px 36px;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+            transition: all 0.3s ease;
+            width: fit-content;
+        }
+
+        .cta-gold-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(212, 175, 55, 0.55);
+        }
+
+        /* KHUNG CHỨA CODE DÁN LADIPAGE */
+        .code-container {
+            margin-top: 50px;
+            background: rgba(8, 36, 28, 0.88);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .code-title {
+            color: var(--gold-bright);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .copy-btn {
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid var(--gold-primary);
+            color: #fff;
+            padding: 6px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--gold-primary);
+            color: #061A14;
+        }
+
+        pre {
+            background: #040e0b;
+            padding: 16px;
+            border-radius: 10px;
+            color: #a7f3d0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            overflow-x: auto;
+            border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- THANH CHỌN MẬT ĐỘ THƯA THOÁNG -->
+    <div class="control-bar">
+        <div class="bar-title">
+            <span>✨ CHỌN MẬT ĐỘ CHÒM SAO DI CHUYỂN:</span>
+        </div>
+        <div class="density-buttons">
+            <button class="control-btn active" onclick="setDensity('super_sparse')">
+                <span>🌟 Siêu thưa & Sang trọng (18 chòm sao + Trăng Hilal) - KHUYÊN DÙNG</span>
+            </button>
+            <button class="control-btn" onclick="setDensity('moderate')">
+                <span>✨ Thưa vừa phải (32 chòm sao)</span>
+            </button>
+            <button class="control-btn" onclick="toggleSpeed()">
+                <span id="speedLabel">⚡ Tốc độ: Êm đềm & Chậm rãi</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CANVAS CHÒM SAO DI CHUYỂN CHUYÊN DÙNG CHO NỀN -->
+    <canvas id="constellationCanvas"></canvas>
+    <div class="ambient-glow"></div>
+
+    <!-- NỘI DUNG TRANG WEB (GIỮ NGUYÊN BẢN HOÀN TOÀN) -->
+    <main class="demo-section">
+        <div class="badge-vip">
+            <span>✦</span>
+            <span>الخدمة الدبلوماسية والفاخرة لكبار الشخصيات في فيتنام</span>
+        </div>
+
+        <h1 class="hero-title">
+            بوابتك الموثوقة إلى فيتنام <br>
+            <span>تأشيرة إلكترونية سريعة وخدمة استقبال VIP</span>
+        </h1>
+
+        <p class="hero-subtitle">
+            نحن نقدم تجربة سفر استثنائية وخالية من المتاعب لضيوفنا من دول الخليج العربي، مع حركات أجرام فلكية هادئة تعكس سحر الليالي العربية الفاخرة وسرعة إنجاز لا تضاهى.
+        </p>
+
+        <a href="#" class="cta-gold-btn">
+            <span>احجز تأشيرتك الآن</span>
+            <span>←</span>
+        </a>
+
+        <!-- HỘP MÃ CODE COPY CHO LADIPAGE -->
+        <div class="code-container">
+            <div class="code-header">
+                <div class="code-title">MÃ DÁN VÀO LADIPAGE (CHÒM SAO Ả RẬP DI CHUYỂN THƯA THOÁNG & TƯƠNG TÁC CHUỘT)</div>
+                <button class="copy-btn" onclick="copyCode()">Copy mã LadiPage</button>
+            </div>
+            <pre><code id="codeBlock"></code></pre>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('constellationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+        // Tọa độ chuột
+        const mouse = {
+            x: width * 0.5,
+            y: height * 0.4,
+            isHovered: false,
+            radius: 200 // Bán kính tương tác với chuột
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.isHovered = true;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            mouse.isHovered = false;
+        });
+
+        // CẤU HÌNH MẬT ĐỘ THƯA
+        let currentDensity = 'super_sparse';
+        let speedMultiplier = 0.5; // Chuyển động rất êm dịu, không gây rối mắt
+
+        function getTargetCount() {
+            // Mật độ siêu thưa: Chỉ 18 - 22 điểm trên cả màn hình Full HD
+            if (currentDensity === 'super_sparse') {
+                return Math.max(14, Math.floor((width * height) / 80000));
+            } else {
+                return Math.max(26, Math.floor((width * height) / 45000));
+            }
+        }
+
+        let particles = [];
+
+        class CelestialNode {
+            constructor(isSpecial = false) {
+                this.reset(isSpecial);
+            }
+
+            reset(isSpecial = false) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.45 * speedMultiplier;
+                this.vy = (Math.random() - 0.5) * 0.45 * speedMultiplier;
+                
+                // Phân loại biểu tượng:
+                // 1 = Ngôi sao 8 cánh Rub el Hizb
+                // 2 = Trăng lưỡi liềm Hilal
+                // 3 = Ngôi sao 4 cánh tỏa tia
+                // 0 = Điểm sao tinh tú nhỏ
+                if (isSpecial) {
+                    this.type = Math.random() > 0.4 ? 1 : 2;
+                    this.radius = this.type === 2 ? 14 : 9;
+                } else {
+                    const rand = Math.random();
+                    if (rand > 0.85) {
+                        this.type = 3; // Sao 4 tia
+                        this.radius = 5;
+                    } else {
+                        this.type = 0; // Hạt tinh tú
+                        this.radius = Math.random() * 2 + 1.2;
+                    }
+                }
+
+                this.baseAlpha = Math.random() * 0.35 + 0.25;
+                this.alpha = this.baseAlpha;
+                this.pulseSpeed = Math.random() * 0.02 + 0.008;
+                this.pulseAngle = Math.random() * Math.PI * 2;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.005;
+            }
+
+            update() {
+                this.x += this.vx * speedMultiplier;
+                this.y += this.vy * speedMultiplier;
+                this.rotation += this.rotationSpeed;
+
+                // Chu kỳ nhấp nháy êm đềm
+                this.pulseAngle += this.pulseSpeed;
+                this.alpha = this.baseAlpha + Math.sin(this.pulseAngle) * 0.15;
+
+                // Tương tác chuột: Khi chuột lại gần, sao phát sáng rực rỡ và lướt nhẹ
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (mouse.isHovered && dist < mouse.radius) {
+                    const force = (mouse.radius - dist) / mouse.radius;
+                    // Tăng độ sáng ánh vàng rực khi chuột đến gần
+                    this.alpha = Math.min(1, this.baseAlpha + force * 0.65);
+                    // Lực đẩy nhẹ tạo cảm giác sống động như dải nước sao
+                    this.x -= (dx / dist) * force * 0.8;
+                    this.y -= (dy / dist) * force * 0.8;
+                }
+
+                // Trôi tuần hoàn trên màn hình
+                if (this.x < -40) this.x = width + 40;
+                if (this.x > width + 40) this.x = -40;
+                if (this.y < -40) this.y = height + 40;
+                if (this.y > height + 40) this.y = -40;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                if (this.type === 2) {
+                    // TRĂNG LƯỠI LIỀM HILAL
+                    ctx.fillStyle = `rgba(245, 215, 127, ${this.alpha * 0.9})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0.4 * Math.PI, 1.6 * Math.PI, false);
+                    ctx.arc(this.radius * 0.38, 0, this.radius * 0.85, 1.5 * Math.PI, 0.5 * Math.PI, true);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Vầng hào quang trăng
+                    ctx.shadowColor = '#D4AF37';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                } else if (this.type === 1) {
+                    // NGÔI SAO 8 CÁNH RUB EL HIZB
+                    ctx.strokeStyle = `rgba(212, 175, 55, ${this.alpha})`;
+                    ctx.fillStyle = `rgba(212, 175, 55, ${this.alpha * 0.25})`;
+                    ctx.lineWidth = 1.2;
+                    
+                    const r1 = this.radius;
+                    const r2 = this.radius * 0.55;
+                    ctx.beginPath();
+                    for (let i = 0; i < 16; i++) {
+                        const r = i % 2 === 0 ? r1 : r2;
+                        const angle = (i * Math.PI) / 8;
+                        const x = Math.cos(angle) * r;
+                        const y = Math.sin(angle) * r;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Vòng tròn nhỏ tâm sao
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius * 0.28, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else if (this.type === 3) {
+                    // NGÔI SAO 4 TIA HOÀNG GIA
+                    ctx.fillStyle = `rgba(245, 215, 127, ${this.alpha})`;
+                    ctx.shadowColor = '#D4AF37';
+                    ctx.shadowBlur = 8;
+                    const s = this.radius;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s * 1.8);
+                    ctx.lineTo(s * 0.3, -s * 0.3);
+                    ctx.lineTo(s * 1.8, 0);
+                    ctx.lineTo(s * 0.3, s * 0.3);
+                    ctx.lineTo(0, s * 1.8);
+                    ctx.lineTo(-s * 0.3, s * 0.3);
+                    ctx.lineTo(-s * 1.8, 0);
+                    ctx.lineTo(-s * 0.3, -s * 0.3);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // TINH TÚ BÌNH THƯỜNG
+                    ctx.fillStyle = `rgba(212, 175, 55, ${this.alpha * 0.75})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = getTargetCount();
+            
+            // 2 hạt là Trăng Hilal, 3 hạt là Ngôi sao 8 cánh
+            for (let i = 0; i < count; i++) {
+                const isSpecial = i < 5;
+                particles.push(new CelestialNode(isSpecial));
+            }
+        }
+
+        // KẾT NỐI CÁC ĐƯỜNG DÂY CHÒM SAO VÀNG VƯƠNG GIẢ (KHOẢNG CÁCH DÀI, ĐƯỜNG MẢNH THƯA THOÁNG)
+        function drawConstellationLines() {
+            const maxDistance = 180;
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const lineAlpha = (1 - dist / maxDistance) * 0.16 * Math.min(p1.alpha, p2.alpha);
+                        ctx.strokeStyle = `rgba(212, 175, 55, ${lineAlpha})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Kết nối sợi tơ vàng tới chuột khi chuột lại gần
+                if (mouse.isHovered) {
+                    const dxm = p1.x - mouse.x;
+                    const dym = p1.y - mouse.y;
+                    const distMouse = Math.sqrt(dxm * dxm + dym * dym);
+
+                    if (distMouse < mouse.radius) {
+                        const mouseLineAlpha = (1 - distMouse / mouse.radius) * 0.28;
+                        ctx.strokeStyle = `rgba(245, 215, 127, ${mouseLineAlpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Vẽ các đường liên kết chòm sao
+            drawConstellationLines();
+
+            // Vẽ và cập nhật các nút chòm sao
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
+
+        // ĐIỀU KHIỂN GIAO DIỆN
+        function setDensity(level) {
+            currentDensity = level;
+            document.querySelectorAll('.density-buttons .control-btn').forEach((btn, idx) => {
+                if (idx < 2) {
+                    if ((idx === 0 && level === 'super_sparse') || (idx === 1 && level === 'moderate')) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+            });
+            initParticles();
+            updateCodeSnippet();
+        }
+
+        let isNormalSpeed = false;
+        function toggleSpeed() {
+            isNormalSpeed = !isNormalSpeed;
+            speedMultiplier = isNormalSpeed ? 1.0 : 0.5;
+            document.getElementById('speedLabel').innerText = isNormalSpeed ? '⚡ Tốc độ: Vừa phải' : '⚡ Tốc độ: Êm đềm & Chậm rãi';
+            updateCodeSnippet();
+        }
+
+        function updateCodeSnippet() {
+            const densityVal = currentDensity === 'super_sparse' ? 80000 : 45000;
+            const snippet = `<style>
+/* 1. NỀN SECTION HOÀNG GIA LỤC BẢO */
+.ladi-section .ladi-section-background {
+  background-color: #061A14 !important;
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.18) 0%, transparent 70%) !important;
+}
+
+/* 2. CANVAS CHÒM SAO NẰM CHÌM DƯỚI NỀN - POINTER-EVENTS NONE KHÔNG CHẶN CLICK HAY VIDEO */
+#arabicConstellationCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+</style>
+
+<canvas id="arabicConstellationCanvas"></canvas>
+
+<script>
+(function() {
+  const c = document.getElementById('arabicConstellationCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  let w = c.width = window.innerWidth, h = c.height = window.innerHeight;
+  window.addEventListener('resize', () => { w = c.width = window.innerWidth; h = c.height = window.innerHeight; init(); });
+
+  const mouse = { x: w * 0.5, y: h * 0.4, isHover: false, radius: 200 };
+  window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.isHover = true; });
+  window.addEventListener('mouseleave', () => { mouse.isHover = false; });
+
+  let pts = [];
+  const speed = ${speedMultiplier};
+  const count = Math.max(14, Math.floor((w * h) / ${densityVal}));
+
+  class Star {
+    constructor(special) {
+      this.x = Math.random() * w;
+      this.y = Math.random() * h;
+      this.vx = (Math.random() - 0.5) * 0.4 * speed;
+      this.vy = (Math.random() - 0.5) * 0.4 * speed;
+      this.type = special ? (Math.random() > 0.4 ? 1 : 2) : (Math.random() > 0.85 ? 3 : 0);
+      this.r = this.type === 2 ? 14 : (this.type === 1 ? 9 : (this.type === 3 ? 5 : 1.8));
+      this.baseAlpha = Math.random() * 0.3 + 0.25;
+      this.alpha = this.baseAlpha;
+      this.pulse = Math.random() * 0.02 + 0.008;
+      this.angle = Math.random() * 6.28;
+      this.rot = Math.random() * 6.28;
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy; this.rot += 0.003;
+      this.angle += this.pulse;
+      this.alpha = this.baseAlpha + Math.sin(this.angle) * 0.15;
+      const dx = mouse.x - this.x, dy = mouse.y - this.y, dist = Math.sqrt(dx*dx + dy*dy);
+      if (mouse.isHover && dist < mouse.radius) {
+        const force = (mouse.radius - dist) / mouse.radius;
+        this.alpha = Math.min(1, this.baseAlpha + force * 0.65);
+        this.x -= (dx/dist) * force * 0.7; this.y -= (dy/dist) * force * 0.7;
+      }
+      if (this.x < -30) this.x = w + 30; if (this.x > w + 30) this.x = -30;
+      if (this.y < -30) this.y = h + 30; if (this.y > h + 30) this.y = -30;
+    }
+    draw() {
+      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+      if (this.type === 2) {
+        ctx.fillStyle = "rgba(245, 215, 127, " + (this.alpha * 0.9) + ")";
+        ctx.beginPath(); ctx.arc(0, 0, this.r, 0.4*Math.PI, 1.6*Math.PI);
+        ctx.arc(this.r*0.38, 0, this.r*0.85, 1.5*Math.PI, 0.5*Math.PI, true);
+        ctx.fill();
+      } else if (this.type === 1) {
+        ctx.strokeStyle = "rgba(212, 175, 55, " + this.alpha + ")";
+        ctx.lineWidth = 1.2; ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+          const r = i%2 === 0 ? this.r : this.r*0.55;
+          const a = (i * Math.PI)/8;
+          ctx[i===0?'moveTo':'lineTo'](Math.cos(a)*r, Math.sin(a)*r);
+        }
+        ctx.closePath(); ctx.stroke();
+      } else {
+        ctx.fillStyle = "rgba(212, 175, 55, " + (this.alpha*0.8) + ")";
+        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function init() {
+    pts = [];
+    for (let i = 0; i < count; i++) pts.push(new Star(i < 5));
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 180) {
+          ctx.strokeStyle = "rgba(212, 175, 55, " + ((1 - d/180) * 0.15) + ")";
+          ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
+        }
+      }
+      if (mouse.isHover) {
+        const dxm = pts[i].x - mouse.x, dym = pts[i].y - mouse.y, dm = Math.sqrt(dxm*dxm + dym*dym);
+        if (dm < mouse.radius) {
+          ctx.strokeStyle = "rgba(245, 215, 127, " + ((1 - dm/mouse.radius) * 0.28) + ")";
+          ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+        }
+      }
+      pts[i].update(); pts[i].draw();
+    }
+    requestAnimationFrame(loop);
+  }
+  init(); loop();
+})();
+<\\/script>`;
+            document.getElementById('codeBlock').innerText = snippet;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeBlock').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerText = '✓ Đã copy thành công!';
+                btn.style.background = '#10b981';
+                setTimeout(() => {
+                    btn.innerText = 'Copy mã LadiPage';
+                    btn.style.background = 'rgba(212, 175, 55, 0.15)';
+                }, 2000);
+            });
+        }
+
+        updateCodeSnippet();
+    </script>
+</body>
+</html>
