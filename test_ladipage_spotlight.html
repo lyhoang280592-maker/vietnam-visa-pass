@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test LadiPage Interactive Cyber Grid</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #fff;
+            background: #0B0F19;
+        }
+
+        :root {
+            --mouse-x: 50vw;
+            --mouse-y: 50vh;
+        }
+
+        /* MÔ PHỎNG EXACT CLASS CỦA LADIPAGE */
+        .ladi-section {
+            position: relative;
+            width: 100%;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+        }
+
+        .ladi-section .ladi-section-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-color: #0B0F19 !important;
+            background-image: 
+                /* Lớp 1: Đèn rọi Cyber Spotlight follow chuột theo thời gian thực (Fixed theo màn hình) */
+                radial-gradient(550px circle at var(--mouse-x) var(--mouse-y), rgba(0, 240, 255, 0.22) 0%, rgba(0, 240, 255, 0.06) 40%, transparent 70%),
+                /* Lớp 2: Làn sóng quét Automation Radar chạy liên tục từ trên xuống */
+                linear-gradient(180deg, transparent 0%, rgba(0, 240, 255, 0.12) 50%, transparent 100%),
+                /* Lớp 3: Lưới chấm ma trận 24px nguyên bản của bạn */
+                radial-gradient(rgba(0, 240, 255, 0.18) 1.2px, transparent 1.2px) !important;
+            background-size: 100% 100%, 100% 350px, 24px 24px !important;
+            background-attachment: fixed, scroll, scroll !important;
+            background-repeat: no-repeat, repeat-y, repeat !important;
+            animation: ladipage-automation-scan 7s linear infinite !important;
+        }
+
+        @keyframes ladipage-automation-scan {
+            0% { background-position: 0 0, 0 -350px, 0 0; }
+            100% { background-position: 0 0, 0 100vh, 0 0; }
+        }
+
+        .ladi-container {
+            position: relative;
+            z-index: 10;
+            max-width: 900px;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 38px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 40%, #00f0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 17px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00f0ff, #0284c7);
+            color: #0B0F19;
+            font-weight: 800;
+            padding: 14px 32px;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="ladi-section">
+        <div class="ladi-section-background"></div>
+        <div class="ladi-container">
+            <h1>Ведущий провайдер визовых услуг во Вьетнаме</h1>
+            <p>Rê chuột trên màn hình: Vầng sáng ma trận Cyber Spotlight sẽ rọi theo con trỏ chuột 100% mượt mà, thắp sáng các chấm tròn khi chuột quét qua!</p>
+            <a href="#" class="btn">ĐẶT DỊCH VỤ</a>
+        </div>
+    </div>
+
+    <div class="ladi-section">
+        <div class="ladi-section-background"></div>
+        <div class="ladi-container">
+            <h1>Section 2 - Kiểm tra cuộn trang LadiPage</h1>
+            <p>Dù bạn cuộn trang bao xa trên LadiPage, hiệu ứng vẫn bám dính chính xác vào con trỏ chuột mà không bị mất hay lệch vị trí!</p>
+            <a href="#" class="btn">KIỂM TRA TIẾP</a>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        let ticking = false;
+        window.addEventListener('mousemove', function(e) {
+            if (!ticking) {
+                window.requestAnimationFrame(function() {
+                    document.documentElement.style.setProperty('--mouse-x', e.clientX + 'px');
+                    document.documentElement.style.setProperty('--mouse-y', e.clientY + 'px');
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        window.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 0 && !ticking) {
+                window.requestAnimationFrame(function() {
+                    document.documentElement.style.setProperty('--mouse-x', e.touches[0].clientX + 'px');
+                    document.documentElement.style.setProperty('--mouse-y', e.touches[0].clientY + 'px');
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
+

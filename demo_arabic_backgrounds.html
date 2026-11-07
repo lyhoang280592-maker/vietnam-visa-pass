@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Arabic Luxury Cultural Experience (تصاميم الهوية العربية الراقية)</title>
+    <!-- Google Fonts: Cairo & Amiri (Phông chữ Ả Rập chuẩn mực Hoàng gia) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Amiri:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* THEME 1: ROYAL EMERALD & GOLD ARABESQUE (Hoàng gia Ả Rập: Ngọc Lục Bảo & Vàng Gold) */
+        body.theme-royal-emerald {
+            --bg-base: #061A14;
+            --bg-card: rgba(8, 36, 28, 0.75);
+            --border-card: rgba(212, 175, 55, 0.25);
+            --gold-primary: #D4AF37;
+            --gold-glow: rgba(212, 175, 55, 0.35);
+            --green-accent: #10b981;
+            --text-heading: #FFFFFF;
+            --text-lead: #D1E7DD;
+            --badge-bg: rgba(212, 175, 55, 0.12);
+            --pattern-opacity: 0.07;
+            --radial-glow: radial-gradient(ellipse at 50% -10%, rgba(212, 175, 55, 0.22) 0%, rgba(6, 26, 20, 0.8) 70%);
+        }
+
+        /* THEME 2: ARABIAN NIGHT & DESERT GOLD (Đêm Huyền Bí Vùng Vịnh & Cát Sa Mạc) */
+        body.theme-arabian-night {
+            --bg-base: #070F18;
+            --bg-card: rgba(13, 28, 45, 0.75);
+            --border-card: rgba(230, 184, 106, 0.25);
+            --gold-primary: #E6B86A;
+            --gold-glow: rgba(230, 184, 106, 0.35);
+            --green-accent: #38bdf8;
+            --text-heading: #FFFFFF;
+            --text-lead: #CBD5E1;
+            --badge-bg: rgba(230, 184, 106, 0.12);
+            --pattern-opacity: 0.05;
+            --radial-glow: radial-gradient(ellipse at 50% -10%, rgba(230, 184, 106, 0.2) 0%, rgba(7, 15, 24, 0.85) 70%);
+        }
+
+        /* THEME 3: MODERN GCC LUXURY MINIMALISM (Tối Giản Đẳng Cấp Dubai / Qatar) */
+        body.theme-gcc-modern {
+            --bg-base: #0A0E14;
+            --bg-card: rgba(18, 24, 34, 0.8);
+            --border-card: rgba(197, 160, 89, 0.22);
+            --gold-primary: #C5A059;
+            --gold-glow: rgba(197, 160, 89, 0.3);
+            --green-accent: #059669;
+            --text-heading: #FFFFFF;
+            --text-lead: #94A3B8;
+            --badge-bg: rgba(197, 160, 89, 0.1);
+            --pattern-opacity: 0.04;
+            --radial-glow: radial-gradient(ellipse at 50% -10%, rgba(197, 160, 89, 0.18) 0%, rgba(10, 14, 20, 0.9) 70%);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: #f8fafc;
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        /* HOA VĂN HÌNH HỌC ARABESQUE (ISLAMIC GEOMETRIC PATTERN) */
+        .arabesque-background-pattern {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+            opacity: var(--pattern-opacity);
+            transition: opacity 0.5s;
+            background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23D4AF37' fill-rule='evenodd'%3E%3Cpath d='M40 0l4.7 15.3L60 10.6 54.7 25.3 70 24.7 60.6 36 74.3 43.3 60.6 50.7 70 62 54.7 61.4 60 76.1 44.7 71.4 40 86.7l-4.7-15.3L20 76.1l5.3-14.7L10 62l9.4-11.3L5.7 43.3 19.4 36 10 24.7l15.3.7L20 10.6l15.3 4.7z' fill-opacity='0.4'/%3E%3Ccircle cx='40' cy='40' r='14' fill='none' stroke='%23D4AF37' stroke-width='1.5' stroke-opacity='0.6'/%3E%3Cpolygon points='40,29 48,40 40,51 32,40' fill='none' stroke='%23D4AF37' stroke-width='1.2' stroke-opacity='0.5'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: 80px 80px;
+        }
+
+        /* Quầng sáng vương giả trên đỉnh trang */
+        .royal-glow-aurora {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 600px;
+            background: var(--radial-glow);
+            pointer-events: none;
+            z-index: 2;
+            transition: background 0.6s;
+        }
+
+        /* Top Theme Switcher Bar */
+        .top-switcher-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(6, 26, 20, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .switcher-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .switcher-btns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-theme-switch {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            font-family: 'Cairo', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 8px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-theme-switch:hover {
+            background: rgba(212, 175, 55, 0.15);
+            color: #fff;
+        }
+        .btn-theme-switch.active {
+            background: var(--badge-bg);
+            border-color: var(--gold-primary);
+            color: var(--gold-primary);
+            box-shadow: 0 0 15px var(--gold-glow);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Nav Brand */
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 50px;
+        }
+        .brand-logo-text {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-crescent {
+            font-size: 24px;
+            color: var(--gold-primary);
+            filter: drop-shadow(0 0 10px var(--gold-glow));
+        }
+        .brand-title-ar {
+            font-size: 20px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .brand-sub-ar {
+            font-size: 12px;
+            color: var(--gold-primary);
+            font-weight: 600;
+        }
+        .contact-pill-ar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--badge-bg);
+            border: 1px solid var(--gold-primary);
+            color: var(--gold-primary);
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+            text-decoration: none;
+            box-shadow: 0 0 15px var(--gold-glow);
+        }
+
+        /* Hero Section RTL */
+        .hero-ar {
+            text-align: center;
+            max-width: 880px;
+            margin: 0 auto 60px;
+        }
+        .hero-crest-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--badge-bg);
+            border: 1px solid var(--border-card);
+            color: var(--gold-primary);
+            padding: 8px 24px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            box-shadow: 0 0 20px var(--gold-glow);
+        }
+        h1 {
+            font-size: clamp(32px, 5.5vw, 56px);
+            font-weight: 900;
+            line-height: 1.25;
+            margin-bottom: 22px;
+            color: var(--text-heading);
+        }
+        h1 span.gold {
+            color: var(--gold-primary);
+            text-shadow: 0 0 35px var(--gold-glow);
+        }
+        .hero-lead-ar {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--text-lead);
+            max-width: 760px;
+            margin: 0 auto 34px;
+            font-weight: 400;
+        }
+
+        .cta-group-ar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .btn-gold-ar {
+            background: linear-gradient(135deg, var(--gold-primary) 0%, #C5A059 100%);
+            color: #061A14;
+            font-weight: 900;
+            font-size: 16px;
+            padding: 16px 38px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px var(--gold-glow);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-gold-ar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px var(--gold-glow);
+        }
+        .btn-outline-ar {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-card);
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 15px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .btn-outline-ar:hover {
+            border-color: var(--gold-primary);
+            color: var(--gold-primary);
+        }
+
+        /* 3 Rich Arabic Service Cards */
+        .services-grid-ar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        @media (max-width: 900px) {
+            .services-grid-ar { grid-template-columns: 1fr; }
+        }
+
+        .card-ar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(16px);
+            transition: all 0.35s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-ar:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold-primary);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 25px var(--gold-glow);
+        }
+
+        .card-ar-img {
+            width: 100%;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-ar-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s;
+        }
+        .card-ar:hover .card-ar-img img { transform: scale(1.06); }
+        .card-ar-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, transparent 40%, var(--bg-base) 100%);
+        }
+        .card-ar-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(6, 26, 20, 0.88);
+            border: 1px solid var(--gold-primary);
+            color: var(--gold-primary);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 999px;
+            backdrop-filter: blur(8px);
+        }
+
+        .card-ar-body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .card-ar-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .card-ar-desc {
+            font-size: 14px;
+            color: var(--text-lead);
+            line-height: 1.7;
+            margin-bottom: 20px;
+            flex: 1;
+        }
+        .card-ar-meta {
+            border-top: 1px solid rgba(212, 175, 55, 0.15);
+            padding-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .price-label-ar { font-size: 12px; color: #94a3b8; }
+        .price-val-ar {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--gold-primary);
+        }
+
+        /* Hospitality VIP Banner */
+        .hospitality-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--gold-primary);
+            border-radius: 20px;
+            padding: 32px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            box-shadow: 0 0 35px var(--gold-glow);
+        }
+        @media (max-width: 800px) {
+            .hospitality-banner { flex-direction: column; text-align: center; }
+        }
+        .hosp-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .hosp-desc {
+            font-size: 15px;
+            color: var(--text-lead);
+        }
+    </style>
+</head>
+<body class="theme-royal-emerald">
+
+    <!-- HOA VĂN MẠ VÀNG ARABESQUE (ISLAMIC GEOMETRIC PATTERN) -->
+    <div class="arabesque-background-pattern"></div>
+    <div class="royal-glow-aurora"></div>
+
+    <!-- Top Switcher: 3 Trạng thái & Phong cách Văn hóa Ả Rập -->
+    <header class="top-switcher-bar">
+        <div class="switcher-title">
+            <span>✨</span>
+            <span>اختر نمط التصميم العربي الفاخر (CHỌN PHONG CÁCH NỀN Ả RẬP):</span>
+        </div>
+        <div class="switcher-btns">
+            <button class="btn-theme-switch active" onclick="switchTheme('royal-emerald')">
+                <span>🟢</span>
+                <span>Royal Emerald &amp; Gold (الأخضر الملكي والذهب)</span>
+            </button>
+            <button class="btn-theme-switch" onclick="switchTheme('arabian-night')">
+                <span>🌙</span>
+                <span>Arabian Night &amp; Dune (سحر الليل وصحراء الذهب)</span>
+            </button>
+            <button class="btn-theme-switch" onclick="switchTheme('gcc-modern')">
+                <span>🏙️</span>
+                <span>Modern GCC Luxury (فخامة دبي والرياض المعاصرة)</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- Header Brand RTL -->
+        <div class="header-brand">
+            <div class="brand-logo-text">
+                <span class="brand-crescent">⚜️</span>
+                <div>
+                    <div class="brand-title-ar">إيزي تريب فيزا (EASY TRIP &amp; VISA)</div>
+                    <div class="brand-sub-ar">بوابتكم الرسمية لتأشيرات فيتنام والخدمات الملكية VIP</div>
+                </div>
+            </div>
+            <a href="https://t.me/Easy_Trip_Visa_bot" target="_blank" class="contact-pill-ar">
+                <span>خدمة كبار الشخصيات VIP 24/7</span>
+                <span>💬</span>
+            </a>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="hero-ar">
+            <div class="hero-crest-badge">
+                <span>⭐️</span>
+                <span id="badge-theme-name">الخدمة الأسرع والأكثر موثوقية لمواطني الخليج والعالم العربي</span>
+                <span>⭐️</span>
+            </div>
+            <h1>
+                مزود خدمات التأشيرات <br>
+                <span class="gold" id="title-highlight">الرائد والأكثر فخامة في فيتنام</span>
+            </h1>
+            <p class="hero-lead-ar" id="lead-theme-text">
+                نقدم خدمات استخراج التأشيرة الإلكترونية العاجلة (E-Visa) خلال ساعات معدودة، رحلات الفيزا ران الفاخرة عبر حافلات النوم VIP، واستقبال كبار الشخصيات (Fast Track) في جميع مطارات فيتنام الدولية.
+            </p>
+
+            <div class="cta-group-ar">
+                <a href="https://t.me/Easy_Trip_Visa_bot" target="_blank" class="btn-gold-ar">
+                    <span>احجز خدمتك الآن عبر تليجرام</span>
+                    <span>➜</span>
+                </a>
+                <a href="#services" class="btn-outline-ar">
+                    <span>استكشف باقات كبار الشخصيات VIP</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3 Rich Service Cards in Arabic -->
+        <div class="services-grid-ar" id="services">
+
+            <!-- CARD 1: E-VISA URGENT -->
+            <div class="card-ar">
+                <div class="card-ar-img">
+                    <img src="vve_evisa.png" alt="Vietnam E-Visa Official">
+                    <div class="card-ar-overlay"></div>
+                    <span class="card-ar-badge">⚡ تأشيرة إلكترونية عاجلة</span>
+                </div>
+                <div class="card-ar-body">
+                    <div class="card-ar-title">التأشيرة الإلكترونية 90 يوماً (E-Visa)</div>
+                    <div class="card-ar-desc">
+                        معالجة فورية ومضمونة 100% صادرة رسمياً عن إدارة الهجرة الفيتنامية خلال (1 - 4 ساعات). دخول فردي أو متعدد لرجال الأعمال والعائلات.
+                    </div>
+                    <div class="card-ar-meta">
+                        <span class="price-label-ar">الباقة العاجلة (4 ساعات):</span>
+                        <span class="price-val-ar">2.000.000 VND</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: VIP FAST TRACK AIRPORT -->
+            <div class="card-ar">
+                <div class="card-ar-img">
+                    <img src="vve_fast_track.png" alt="VIP Airport Fast Track">
+                    <div class="card-ar-overlay"></div>
+                    <span class="card-ar-badge">✈️ استقبال VIP في المطارات</span>
+                </div>
+                <div class="card-ar-body">
+                    <div class="card-ar-title">خدمة المسار السريع بالمطار (Fast Track)</div>
+                    <div class="card-ar-desc">
+                        استقبال فندقي من بوابة الطائرة في مطارات كام رانه (CXR)، دانانغ (DAD)، سايغون (SGN)، وهانوي. إنهاء فوري لإجراءات الجوازات والجمارك دون انتظار.
+                    </div>
+                    <div class="card-ar-meta">
+                        <span class="price-label-ar">رسوم الخدمة للشخص:</span>
+                        <span class="price-val-ar">1.855.000 VND ($70)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 3: SLEEPER BUS VISARUN -->
+            <div class="card-ar">
+                <div class="card-ar-img">
+                    <img src="vve_sleeper_bus.png" alt="VIP Sleeper Bus">
+                    <div class="card-ar-overlay"></div>
+                    <span class="card-ar-badge">🚌 حافلات النوم الفاخرة</span>
+                </div>
+                <div class="card-ar-body">
+                    <div class="card-ar-title">فيزا ران الحافلات الملكية (Visarun)</div>
+                    <div class="card-ar-desc">
+                        كابينات نوم فندقية خاصة 20 مقعداً تنطلق من نيا ترانج إلى منفذ بو ي (لاوس) وموك باي (كمبوديا). 100% مجاناً للأطفال تحت سن 9 سنوات.
+                    </div>
+                    <div class="card-ar-meta">
+                        <span class="price-label-ar">الباقة الشاملة مع التأشيرة:</span>
+                        <span class="price-val-ar">3.400.000 VND</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Hospitality Banner -->
+        <div class="hospitality-banner">
+            <div>
+                <div class="hosp-title">ضيافة عربية أصيلة وخدمة موثوقة في فيتنام</div>
+                <div class="hosp-desc">فريقنا متواجد على مدار 24 ساعة للرد على استفساراتكم باللغة العربية وتأكيد حجوزاتكم فوراً.</div>
+            </div>
+            <a href="https://wa.me/84853201277" target="_blank" class="btn-gold-ar" style="background: #25D366; color: #fff; box-shadow: 0 10px 25px rgba(37,211,102,0.4);">
+                <span>تواصل معنا عبر واتساب</span>
+                <span>💬</span>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Theme Switcher Script -->
+    <script>
+        const ARABIC_THEMES = {
+            'royal-emerald': {
+                cls: 'theme-royal-emerald',
+                badge: 'الخدمة الأسرع والأكثر موثوقية لمواطني الخليج والعالم العربي',
+                title: 'الرائد والأكثر فخامة في فيتنام',
+                lead: 'نقدم خدمات استخراج التأشيرة الإلكترونية العاجلة (E-Visa) خلال ساعات معدودة، رحلات الفيزا ران الفاخرة عبر حافلات النوم VIP، واستقبال كبار الشخصيات (Fast Track) في جميع مطارات فيتنام الدولية.'
+            },
+            'arabian-night': {
+                cls: 'theme-arabian-night',
+                badge: 'سحر الليل العربي وضيافة استثنائية من شواطئ نيا ترانج',
+                title: 'وجهتكم الآمنة لتجديد الإقامة والفيزا',
+                lead: 'استمتع برحلة هادئة عبر الحدود بدون أي تعقيدات، مع حافلات فندقية فاخرة وخدمات تأشيرات إلكترونية معتمدة بأعلى معايير الشفافية.'
+            },
+            'gcc-modern': {
+                cls: 'theme-gcc-modern',
+                badge: 'حلول السفر الذكية المعتمدة لرجال الأعمال والمقيمين',
+                title: 'منظومة خدمات التأشيرات المتكاملة 24/7',
+                lead: 'خدمات سريعة مصممة وفق أحدث المعايير الرقمية لتسهيل وصولك وإقامتك في فيتنام بكل راحة واطمئنان.'
+            }
+        };
+
+        function switchTheme(themeKey) {
+            document.querySelectorAll('.btn-theme-switch').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            const item = ARABIC_THEMES[themeKey];
+            document.body.className = item.cls;
+            document.getElementById('badge-theme-name').innerText = item.badge;
+            document.getElementById('title-highlight').innerText = item.title;
+            document.getElementById('lead-theme-text').innerText = item.lead;
+        }
+    </script>
+</body>
+</html>
