@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Trip & Visa — Nền Trắng Tương Phản Cao Cấp Hàn Quốc (White Luxury)</title>
+    <title>Easy Trip & Visa — Nền Trắng Thuần Túy & Menu Xanh Navy Sẫm</title>
     <!-- Phông chữ tiếng Hàn -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,16 +11,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        :root {
-            --bg-white: #FFFFFF;
-            --gold-contrast: #B8860B; /* Vàng hổ phách đậm tạo tương phản sắc nét trên nền trắng */
-            --gold-caramel: #C5A059;
-            --navy-korea: #0F172A;
-            --slate-text: #334155;
-        }
-
         body {
-            background-color: var(--bg-white);
+            background-color: #FFFFFF;
             color: #0F172A;
             font-family: 'Noto Sans KR', sans-serif;
             min-height: 100vh;
@@ -28,83 +20,28 @@
             position: relative;
         }
 
-        /* KHUNG ĐIỀU KHIỂN DÀNH CHO BẠN (TOP TOOLBAR) */
-        .top-toolbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(184, 134, 11, 0.25);
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-
-        .toolbar-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--gold-contrast);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .mode-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .btn-contrast {
-            background: rgba(184, 134, 11, 0.06);
-            border: 1px solid rgba(184, 134, 11, 0.25);
-            color: #475569;
-            padding: 7px 18px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-contrast:hover {
-            background: rgba(184, 134, 11, 0.15);
-            color: var(--gold-contrast);
-            border-color: var(--gold-contrast);
-        }
-
-        .btn-contrast.active {
-            background: linear-gradient(135deg, #B8860B, #8C6D2D);
-            color: #FFFFFF;
-            font-weight: 700;
-            border-color: #B8860B;
-            box-shadow: 0 4px 14px rgba(184, 134, 11, 0.35);
-        }
-
-        /* NỀN SECTION TRẮNG SANG TRỌNG VỚI HÀO QUANG VÀNG KIM NHẸ */
-        .white-section-bg {
+        /* 1. NỀN CÁC SECTION: MÀU TRẮNG TINH THUẦN TÚY (KHÔNG DÙNG GRADIENT) */
+        .ladi-section .ladi-section-background {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: #FFFFFF !important;
-            background-image: 
-                radial-gradient(ellipse at 50% -5%, rgba(197, 160, 89, 0.15) 0%, transparent 60%),
-                radial-gradient(rgba(184, 134, 11, 0.08) 1.2px, transparent 1.2px) !important;
-            background-size: 100% 500px, 32px 32px !important;
-            background-repeat: no-repeat, repeat !important;
-            pointer-events: none;
+            background-image: none !important;
             z-index: 0;
         }
 
-        /* CANVAS BIỂU TƯỢNG ĐỘNG TƯƠNG PHẢN TRÊN NỀN TRẮNG */
-        #whiteKoreanCanvas {
+        /* 2. THANH BAR MENU TRÊN CÙNG: MÀU XANH NAVY SẪM */
+        #menu,
+        #menu .ladi-section-background,
+        .mock-header {
+            position: relative;
+            z-index: 100;
+            background-color: #080E1A !important;
+            background-image: none !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 3. CANVAS BIỂU TƯỢNG HÀN QUỐC CHÌM NỀN */
+        #koreanWhiteCanvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -114,16 +51,12 @@
             z-index: 1 !important;
         }
 
-        /* HEADER MÔ PHỎNG NGUYÊN BẢN (THANH NAVY ĐẬM TRÊN CÙNG) */
+        /* CHI TIẾT HEADER */
         .mock-header {
-            position: relative;
-            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 14px 40px;
-            background: #080E1A;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .mock-logo {
@@ -132,7 +65,7 @@
             gap: 12px;
             font-size: 16px;
             font-weight: 800;
-            color: #fff;
+            color: #FFFFFF;
         }
 
         .mock-logo-badge {
@@ -140,40 +73,46 @@
             height: 40px;
             border-radius: 50%;
             background: #111827;
-            border: 1px solid rgba(245, 158, 11, 0.5);
+            border: 1px solid rgba(197, 160, 89, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
             font-weight: 800;
-            color: #F59E0B;
+            color: #C5A059;
         }
 
         .mock-nav {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .mock-nav-item {
-            padding: 6px 16px;
+            padding: 7px 18px;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            font-size: 13px;
-            color: #E2E8F0;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            font-size: 13.5px;
+            color: #F8FAFC;
             text-decoration: none;
             font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mock-nav-item:hover {
+            border-color: #C5A059;
+            color: #C5A059;
         }
 
         .mock-nav-btn {
-            background: linear-gradient(135deg, #F59E0B, #D97706);
-            color: #0F172A;
+            background: linear-gradient(135deg, #C5A059, #8C6D2D);
+            color: #080E1A;
             font-weight: 800;
-            border-color: #FCD34D;
+            border-color: #F5D77F;
         }
 
-        /* KHU VỰC HERO MÔ PHỎNG Y HỆT ẢNH BẠN GỬI */
+        /* MÔ PHỎNG NỘI DUNG HERO Y HỆT ẢNH BẠN CHỤP */
         .hero-layout {
             position: relative;
             z-index: 10;
@@ -189,7 +128,7 @@
         .photo-card {
             border-radius: 20px;
             overflow: hidden;
-            border: 1px solid rgba(184, 134, 11, 0.3);
+            border: 1px solid rgba(184, 134, 11, 0.25);
             box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
             background: #fff;
         }
@@ -206,7 +145,6 @@
             gap: 22px;
         }
 
-        /* HỘP CHỮ VÀNG HỔ PHÁCH Y HỆT ẢNH */
         .gold-title-box {
             background: #C5A059;
             padding: 18px 28px;
@@ -223,7 +161,6 @@
             letter-spacing: -0.5px;
         }
 
-        /* NÚT BẤM TRẮNG VIỀN VÀNG Y HỆT ẢNH */
         .white-cta-btn {
             background: #FFFFFF;
             color: #A17C2F;
@@ -258,7 +195,7 @@
             line-height: 1.75;
         }
 
-        /* HỘP HIỂN THỊ CODE LADIPAGE */
+        /* HỘP MÃ CODE */
         .code-box {
             max-width: 1100px;
             margin: 20px auto 70px auto;
@@ -312,45 +249,19 @@
             overflow-x: auto;
             border: 1px solid rgba(184, 134, 11, 0.2);
         }
-
-        @media (max-width: 900px) {
-            .hero-layout {
-                grid-template-columns: 1fr;
-            }
-            .gold-title-box h1 {
-                font-size: 26px;
-            }
-        }
     </style>
 </head>
 <body>
 
-    <!-- THANH CHỌN CHẾ ĐỘ MÀU TƯƠNG PHẢN -->
-    <div class="top-toolbar">
-        <div class="toolbar-title">
-            <span>✨ CHỌN MÀU BIỂU TƯỢNG TƯƠNG PHẢN TRÊN NỀN TRẮNG:</span>
-        </div>
-        <div class="mode-buttons">
-            <button class="btn-contrast active" onclick="setContrastMode('amber_gold')">
-                <span>🌟 1. Vàng Đồng Hổ Phách Hoàng Gia (Sang trọng & Đồng điệu 100%) - KHUYÊN DÙNG</span>
-            </button>
-            <button class="btn-contrast" onclick="setContrastMode('navy_gold')">
-                <span>🇰🇷 2. Xanh Navy & Vàng Kim Hàn Quốc (Tương phản mạnh mẽ)</span>
-            </button>
-            <button class="btn-contrast" onclick="setContrastMode('mugunghwa')">
-                <span>🌸 3. Quốc Hoa Mugunghwa & Vì Sao Tinh Tú</span>
-            </button>
-        </div>
+    <div class="ladi-section">
+        <div class="ladi-section-background"></div>
     </div>
 
-    <!-- NỀN TRẮNG SECTION -->
-    <div class="white-section-bg"></div>
+    <!-- CANVAS BIỂU TƯỢNG HÀN QUỐC CHÌM NỀN -->
+    <canvas id="koreanWhiteCanvas"></canvas>
 
-    <!-- CANVAS BIỂU TƯỢNG ĐỘNG TƯƠNG PHẢN -->
-    <canvas id="whiteKoreanCanvas"></canvas>
-
-    <!-- HEADER MÔ PHỎNG -->
-    <header class="mock-header">
+    <!-- THANH BAR MENU MÀU XANH NAVY SẪM NỔI BẬT -->
+    <header class="mock-header" id="menu">
         <div class="mock-logo">
             <div class="mock-logo-badge">EASY<br>TRIP</div>
             <span>EASY TRIP & VISA KOREA</span>
@@ -359,12 +270,12 @@
             <a href="#" class="mock-nav-item">회사 소개</a>
             <a href="#" class="mock-nav-item">우리의 서비스</a>
             <a href="#" class="mock-nav-item">소식</a>
-            <a href="#" class="mock-nav-item" style="border-color: #F59E0B;">연락처 (Liên hệ)</a>
+            <a href="#" class="mock-nav-item" style="border-color: #C5A059;">연락처 (Liên hệ)</a>
             <a href="#" class="mock-nav-item mock-nav-btn">신청서를 제출하세요</a>
         </nav>
     </header>
 
-    <!-- NỘI DUNG HERO Y HỆT ẢNH CỦA BẠN -->
+    <!-- NỘI DUNG TRÊN NỀN TRẮNG THUẦN TÚY -->
     <main class="hero-layout">
         <div class="photo-card">
             <img src="vve_sleeper_bus.png" onerror="this.src='apartment_rental_1780544765071.png'" alt="Khách Hàn tại xe buýt">
@@ -383,17 +294,17 @@
         </div>
     </main>
 
-    <!-- HỘP MÃ CODE DÁN VÀO LADIPAGE -->
+    <!-- HỘP MÃ CODE -->
     <div class="code-box">
         <div class="code-header">
-            <div class="code-title" id="codeTitleLabel">MÃ DÁN LADIPAGE NỀN TRẮNG (CHẾ ĐỘ 1: VÀNG ĐỒNG HỔ PHÁCH TƯƠNG PHẢN)</div>
+            <div class="code-title">MÃ DÁN LADIPAGE: MENU XANH NAVY SẪM + NỀN TRẮNG THUẦN TÚY (KHÔNG GRADIENT)</div>
             <button class="copy-btn" onclick="copyCode()">Copy mã LadiPage</button>
         </div>
         <pre><code id="codeBlock"></code></pre>
     </div>
 
     <script>
-        const canvas = document.getElementById('whiteKoreanCanvas');
+        const canvas = document.getElementById('koreanWhiteCanvas');
         const ctx = canvas.getContext('2d');
 
         let width = canvas.width = window.innerWidth;
@@ -405,25 +316,10 @@
             initNodes();
         });
 
-        // Chuột tương tác
-        const mouse = {
-            x: width * 0.5,
-            y: height * 0.4,
-            isHovered: false,
-            radius: 220
-        };
+        const mouse = { x: width * 0.5, y: height * 0.4, isHovered: false, radius: 220 };
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.isHovered = true; });
+        window.addEventListener('mouseleave', () => { mouse.isHovered = false; });
 
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-            mouse.isHovered = true;
-        });
-
-        window.addEventListener('mouseleave', () => {
-            mouse.isHovered = false;
-        });
-
-        let currentMode = 'amber_gold';
         let nodes = [];
 
         class ContrastNode {
@@ -436,12 +332,12 @@
             reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.14; // Trôi êm đềm
+                this.vx = (Math.random() - 0.5) * 0.14;
                 this.vy = (Math.random() - 0.5) * 0.14;
 
                 if (this.isPrimary) {
-                    this.r = 44; // Biểu tượng lớn (Đường kính 88px)
-                    this.baseAlpha = 0.85;
+                    this.r = 44; // Vòng Thái cực lớn bề thế như ảnh bạn chụp
+                    this.baseAlpha = 0.88;
                     this.rotSpeed = 0.0008;
                 } else if (this.isSecondary) {
                     this.r = 16;
@@ -467,7 +363,6 @@
                 this.pulseAngle += this.pulseSpeed;
                 this.alpha = this.baseAlpha + Math.sin(this.pulseAngle) * 0.12;
 
-                // Tương tác chuột phát sáng
                 const dx = mouse.x - this.x;
                 const dy = mouse.y - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -491,170 +386,63 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.rotation);
 
-                // Màu sắc tương phản dựa trên chế độ
-                const goldStroke = "#B8860B"; // Vàng đồng đậm
-                const goldFill = "rgba(184, 134, 11, 0.18)";
-                const navyStroke = "#0F172A"; // Xanh navy đậm
+                if (this.isPrimary) {
+                    // THÁI CỰC VÀNG ĐỒNG NỔI BẬT Y HỆT ẢNH BẠN VỪA TEST
+                    const r = this.r;
+                    ctx.shadowColor = 'rgba(184, 134, 11, 0.35)';
+                    ctx.shadowBlur = 16;
 
-                if (currentMode === 'amber_gold') {
-                    // ==========================================
-                    // CHẾ ĐỘ 1: VÀNG ĐỒNG HỔ PHÁCH TƯƠNG PHẢN (ĐỒNG ĐIỆU VỚI HỘP CHỮ VÀ NÚT)
-                    // ==========================================
-                    if (this.isPrimary) {
-                        // Vòng xoáy Thái Cực Hoàng Gia Taegeuk màu vàng đồng tương phản rõ trên nền trắng
-                        const r = this.r;
-                        ctx.shadowColor = 'rgba(184, 134, 11, 0.35)';
-                        ctx.shadowBlur = 16;
+                    ctx.strokeStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    ctx.stroke();
 
-                        // Viền ngoài sắc nét
-                        ctx.strokeStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
-                        ctx.lineWidth = 1.8;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, r, 0, Math.PI * 2);
-                        ctx.stroke();
+                    const grad = ctx.createLinearGradient(-r, -r, r, r);
+                    grad.addColorStop(0, `rgba(197, 160, 89, ${this.alpha * 0.85})`);
+                    grad.addColorStop(1, `rgba(161, 124, 47, ${this.alpha * 0.95})`);
+                    ctx.fillStyle = grad;
 
-                        // Phần Dương (Vàng caramel hổ phách)
-                        const grad = ctx.createLinearGradient(-r, -r, r, r);
-                        grad.addColorStop(0, `rgba(197, 160, 89, ${this.alpha * 0.85})`);
-                        grad.addColorStop(1, `rgba(161, 124, 47, ${this.alpha * 0.95})`);
-                        ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+                    ctx.arc(0, r / 2, r / 2, Math.PI / 2, -Math.PI / 2, true);
+                    ctx.arc(0, -r / 2, r / 2, Math.PI / 2, -Math.PI / 2, false);
+                    ctx.closePath();
+                    ctx.fill();
 
-                        ctx.beginPath();
-                        ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
-                        ctx.arc(0, r / 2, r / 2, Math.PI / 2, -Math.PI / 2, true);
-                        ctx.arc(0, -r / 2, r / 2, Math.PI / 2, -Math.PI / 2, false);
-                        ctx.closePath();
-                        ctx.fill();
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(0, -r / 2, r * 0.18, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
 
-                        // Tâm nhãn tương phản
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.beginPath();
-                        ctx.arc(0, -r / 2, r * 0.18, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
+                    ctx.fillStyle = '#B8860B';
+                    ctx.beginPath();
+                    ctx.arc(0, r / 2, r * 0.18, 0, Math.PI * 2);
+                    ctx.fill();
 
-                        ctx.fillStyle = '#B8860B';
-                        ctx.beginPath();
-                        ctx.arc(0, r / 2, r * 0.18, 0, Math.PI * 2);
-                        ctx.fill();
+                } else if (this.isSecondary) {
+                    const r = this.r;
+                    ctx.shadowColor = 'rgba(184, 134, 11, 0.25)';
+                    ctx.shadowBlur = 8;
+                    ctx.strokeStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
+                    ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.35})`;
+                    ctx.lineWidth = 1.4;
 
-                    } else if (this.isSecondary) {
-                        // Sao Bắc Đẩu 7 cánh vàng đồng
-                        const r = this.r;
-                        ctx.shadowColor = 'rgba(184, 134, 11, 0.25)';
-                        ctx.shadowBlur = 8;
-                        ctx.strokeStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
-                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.35})`;
-                        ctx.lineWidth = 1.4;
-
-                        ctx.beginPath();
-                        for (let i = 0; i < 14; i++) {
-                            const rad = i % 2 === 0 ? r : r * 0.5;
-                            const a = (i * Math.PI) / 7;
-                            const sx = Math.cos(a) * rad, sy = Math.sin(a) * rad;
-                            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-                        }
-                        ctx.closePath();
-                        ctx.fill(); ctx.stroke();
-                    } else {
-                        // Hạt sao tinh tú vàng đồng
-                        ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.75})`;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-                        ctx.fill();
+                    ctx.beginPath();
+                    for (let i = 0; i < 14; i++) {
+                        const rad = i % 2 === 0 ? r : r * 0.5;
+                        const a = (i * Math.PI) / 7;
+                        const sx = Math.cos(a) * rad, sy = Math.sin(a) * rad;
+                        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
                     }
-
-                } else if (currentMode === 'navy_gold') {
-                    // ==========================================
-                    // CHẾ ĐỘ 2: XANH NAVY ĐẬM & VÀNG KIM (TƯƠNG PHẢN MẠNH)
-                    // ==========================================
-                    if (this.isPrimary) {
-                        // Thái cực với một nửa Xanh Navy Đậm và một nửa Vàng Đồng
-                        const r = this.r;
-                        ctx.shadowColor = 'rgba(15, 23, 42, 0.2)';
-                        ctx.shadowBlur = 14;
-
-                        ctx.strokeStyle = `rgba(15, 23, 42, ${this.alpha * 0.9})`;
-                        ctx.lineWidth = 1.8;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, r, 0, Math.PI * 2);
-                        ctx.stroke();
-
-                        // Nửa Xanh Navy
-                        ctx.fillStyle = `rgba(15, 23, 42, ${this.alpha * 0.85})`;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
-                        ctx.arc(0, r / 2, r / 2, Math.PI / 2, -Math.PI / 2, true);
-                        ctx.arc(0, -r / 2, r / 2, Math.PI / 2, -Math.PI / 2, false);
-                        ctx.closePath();
-                        ctx.fill();
-
-                        // Nửa Vàng Đồng
-                        ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
-                        ctx.beginPath();
-                        ctx.arc(0, -r / 2, r * 0.18, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        ctx.fillStyle = `rgba(15, 23, 42, ${this.alpha * 0.9})`;
-                        ctx.beginPath();
-                        ctx.arc(0, r / 2, r * 0.18, 0, Math.PI * 2);
-                        ctx.fill();
-
-                    } else if (this.isSecondary) {
-                        const r = this.r;
-                        ctx.strokeStyle = `rgba(15, 23, 42, ${this.alpha * 0.85})`;
-                        ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.35})`;
-                        ctx.lineWidth = 1.3;
-                        ctx.beginPath();
-                        for (let i = 0; i < 14; i++) {
-                            const rad = i % 2 === 0 ? r : r * 0.5;
-                            const a = (i * Math.PI) / 7;
-                            const sx = Math.cos(a) * rad, sy = Math.sin(a) * rad;
-                            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-                        }
-                        ctx.closePath();
-                        ctx.fill(); ctx.stroke();
-                    } else {
-                        ctx.fillStyle = `rgba(15, 23, 42, ${this.alpha * 0.7})`;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
                 } else {
-                    // ==========================================
-                    // CHẾ ĐỘ 3: QUỐC HOA MUGUNGHWA VÀNG ĐỒNG THANH LỊCH
-                    // ==========================================
-                    if (this.isPrimary) {
-                        const r = this.r;
-                        ctx.shadowColor = 'rgba(184, 134, 11, 0.25)';
-                        ctx.shadowBlur = 14;
-                        ctx.strokeStyle = `rgba(184, 134, 11, ${this.alpha * 0.9})`;
-                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.25})`;
-                        ctx.lineWidth = 1.5;
-
-                        for (let p = 0; p < 5; p++) {
-                            const angle = (p * Math.PI * 2) / 5;
-                            ctx.save();
-                            ctx.rotate(angle);
-                            ctx.beginPath();
-                            ctx.ellipse(0, -r * 0.55, r * 0.35, r * 0.55, 0, 0, Math.PI * 2);
-                            ctx.fill(); ctx.stroke();
-                            ctx.restore();
-                        }
-                        ctx.fillStyle = '#B8860B';
-                        ctx.beginPath(); ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2); ctx.fill();
-                    } else if (this.isSecondary) {
-                        const s = this.r;
-                        ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.85})`;
-                        ctx.beginPath();
-                        ctx.moveTo(0, -s * 1.6); ctx.lineTo(s * 0.25, -s * 0.25); ctx.lineTo(s * 1.6, 0); ctx.lineTo(s * 0.25, s * 0.25);
-                        ctx.lineTo(0, s * 1.6); ctx.lineTo(-s * 0.25, s * 0.25); ctx.lineTo(-s * 1.6, 0); ctx.lineTo(-s * 0.25, -s * 0.25);
-                        ctx.closePath(); ctx.fill();
-                    } else {
-                        ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.75})`;
-                        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2); ctx.fill();
-                    }
+                    ctx.fillStyle = `rgba(184, 134, 11, ${this.alpha * 0.75})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+                    ctx.fill();
                 }
 
                 ctx.restore();
@@ -664,17 +452,14 @@
         function initNodes() {
             nodes = [];
             const count = Math.max(12, Math.floor((width * height) / 95000));
-
             nodes.push(new ContrastNode(true, false));
             nodes.push(new ContrastNode(true, false));
             for (let i = 0; i < 3; i++) nodes.push(new ContrastNode(false, true));
             for (let i = 0; i < count; i++) nodes.push(new ContrastNode(false, false));
         }
 
-        // ĐƯỜNG KẾT NỐI TƠ VÀNG TRÊN NỀN TRẮNG
         function drawConnections() {
             const maxDistance = 180;
-
             for (let i = 0; i < nodes.length; i++) {
                 for (let j = i + 1; j < nodes.length; j++) {
                     const p1 = nodes[i], p2 = nodes[j];
@@ -685,7 +470,7 @@
 
                     if (dist < maxDistance) {
                         const alpha = (1 - dist / maxDistance) * 0.22 * Math.min(p1.alpha, p2.alpha);
-                        ctx.strokeStyle = currentMode === 'navy_gold' ? `rgba(15, 23, 42, ${alpha})` : `rgba(184, 134, 11, ${alpha})`;
+                        ctx.strokeStyle = `rgba(184, 134, 11, ${alpha})`;
                         ctx.lineWidth = 0.9;
                         ctx.beginPath();
                         ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
@@ -693,7 +478,6 @@
                     }
                 }
 
-                // Kết nối tới chuột
                 if (mouse.isHovered) {
                     const p = nodes[i];
                     const dxm = p.x - mouse.x, dym = p.y - mouse.y;
@@ -713,59 +497,41 @@
 
         function animate() {
             ctx.clearRect(0, 0, width, height);
-
             drawConnections();
-
             for (let i = 0; i < nodes.length; i++) {
                 nodes[i].update();
                 nodes[i].draw();
             }
-
             requestAnimationFrame(animate);
         }
 
         initNodes();
         animate();
 
-        function setContrastMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-buttons .btn-contrast').forEach(btn => btn.classList.remove('active'));
-
-            if (mode === 'amber_gold') {
-                document.querySelectorAll('.mode-buttons .btn-contrast')[0].classList.add('active');
-                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE NỀN TRẮNG: VÀNG ĐỒNG HỔ PHÁCH TƯƠNG PHẢN (KHUYÊN DÙNG)";
-            } else if (mode === 'navy_gold') {
-                document.querySelectorAll('.mode-buttons .btn-contrast')[1].classList.add('active');
-                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE NỀN TRẮNG: XANH NAVY & VÀNG KIM TƯƠNG PHẢN";
-            } else {
-                document.querySelectorAll('.mode-buttons .btn-contrast')[2].classList.add('active');
-                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE NỀN TRẮNG: QUỐC HOA MUGUNGHWA VÀNG ĐỒNG";
-            }
-
-            initNodes();
-            updateCodeSnippet();
-        }
-
         function updateCodeSnippet() {
             const snippet = `<style>
 /* ========================================================
-   EASY TRIP & VISA — NỀN TRẮNG TƯƠNG PHẢN CAO CẤP HÀN QUỐC
-   - Nền trắng tinh khiết, biểu tượng vàng đồng sắc nét nổi bật
-   - Tương thích 100% LadiPage, không chặn nút bấm, không lỗi video
+   EASY TRIP & VISA — NỀN TRẮNG THUẦN TÚY & MENU XANH NAVY SẪM
+   - Nền trắng tinh khiết, không dùng gradient
+   - Thanh menu trên cùng: Xanh Navy sẫm nổi bật rõ chữ
    ======================================================== */
 
-/* 1. NỀN SECTION TRẮNG SANG TRỌNG KÈM HÀO QUANG VÀNG KIM NHẸ TRÊN ĐỈNH */
+/* 1. TẤT CẢ SECTION NỀN: MÀU TRẮNG THUẦN TÚY (KHÔNG DÙNG GRADIENT) */
 .ladi-section .ladi-section-background {
   background-color: #FFFFFF !important;
-  background-image: 
-    radial-gradient(ellipse at 50% -5%, rgba(197, 160, 89, 0.16) 0%, transparent 60%),
-    radial-gradient(rgba(184, 134, 11, 0.08) 1.2px, transparent 1.2px) !important;
-  background-size: 100% 500px, 32px 32px !important;
-  background-repeat: no-repeat, repeat !important;
-  background-attachment: scroll, fixed !important;
+  background-image: none !important;
 }
 
-/* 2. CANVAS BIỂU TƯỢNG HÀN QUỐC NẰM CHÌM DƯỚI NỀN */
+/* 2. RIÊNG THANH MENU ĐỈNH TRANG: MÀU XANH NAVY SẪM (KHÔNG BỊ TRẮNG NỀN) */
+#menu,
+#menu .ladi-section-background,
+.ladi-wraper > .ladi-section:first-child,
+.ladi-wraper > .ladi-section:first-child > .ladi-section-background {
+  background-color: #080E1A !important;
+  background-image: none !important;
+}
+
+/* 3. CANVAS BIỂU TƯỢNG HÀN QUỐC CHÌM DƯỚI NỀN */
 #koreanWhiteCanvas {
   position: fixed;
   top: 0;
@@ -800,7 +566,7 @@
       this.x = Math.random() * w; this.y = Math.random() * h;
       this.vx = (Math.random() - 0.5) * 0.14; this.vy = (Math.random() - 0.5) * 0.14;
       if (this.isPrimary) {
-        this.r = 44; this.baseAlpha = 0.85; this.rotSpeed = 0.0008;
+        this.r = 44; this.baseAlpha = 0.88; this.rotSpeed = 0.0008;
       } else if (this.isSecondary) {
         this.r = 16; this.baseAlpha = 0.7; this.rotSpeed = (Math.random() - 0.5) * 0.003;
       } else {
@@ -826,7 +592,7 @@
     draw() {
       ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
       if (this.isPrimary) {
-        // THÁI CỰC VÀNG ĐỒNG TƯƠNG PHẢN NỔI BẬT TRÊN NỀN TRẮNG
+        // THÁI CỰC VÀNG ĐỒNG
         const r = this.r;
         ctx.shadowColor = 'rgba(184, 134, 11, 0.35)'; ctx.shadowBlur = 16;
         ctx.strokeStyle = "rgba(184, 134, 11, " + (this.alpha * 0.9) + ")"; ctx.lineWidth = 1.8;
@@ -845,7 +611,7 @@
         ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, -r / 2, r * 0.18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#B8860B'; ctx.beginPath(); ctx.arc(0, r / 2, r * 0.18, 0, Math.PI * 2); ctx.fill();
       } else if (this.isSecondary) {
-        // SAO BẮC ĐẨU 7 CÁNH VÀNG ĐỒNG SẮC NÉT
+        // SAO BẮC ĐẨU 7 CÁNH VÀNG ĐỒNG
         const r = this.r; ctx.shadowColor = 'rgba(184, 134, 11, 0.25)'; ctx.shadowBlur = 8;
         ctx.strokeStyle = "rgba(184, 134, 11, " + (this.alpha * 0.9) + ")";
         ctx.fillStyle = "rgba(197, 160, 89, " + (this.alpha * 0.35) + ")"; ctx.lineWidth = 1.4;
@@ -857,6 +623,7 @@
         }
         ctx.closePath(); ctx.fill(); ctx.stroke();
       } else {
+        // HẠT SAO TINH TÚ VÀNG ĐỒNG
         ctx.fillStyle = "rgba(184, 134, 11, " + (this.alpha * 0.75) + ")";
         ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2); ctx.fill();
       }
@@ -885,7 +652,7 @@
         }
       }
       if (mouse.isHover) {
-        const dxm = nodes[i].x - mouse.x, dym = nodes[i].y - mouse.y, dm = Math.sqrt(dxm*dxm + dym*dym);
+        const dxm = pts_x = nodes[i].x - mouse.x, dym = nodes[i].y - mouse.y, dm = Math.sqrt(pts_x*pts_x + dym*dym);
         if (dm < mouse.radius) {
           ctx.strokeStyle = "rgba(184, 134, 11, " + ((1 - dm/mouse.radius) * 0.35) + ")";
           ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
