@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Giao Diện & Nền Chuyển Động Hàn Quốc (한국어 다이내믹 배경)</title>
+    <!-- Phông chữ tiếng Hàn cao cấp: Pretendard / Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* Tone màu Hàn Quốc hiện đại K-Luxury: Deep Korean Navy + Taegeuk Blue & Imperial Gold */
+            --bg-base: #080E1A;
+            --bg-surface: rgba(14, 23, 42, 0.75);
+            --blue-korea: #38BDF8;
+            --blue-glow: rgba(56, 189, 248, 0.35);
+            --gold-imperial: #F59E0B;
+            --gold-glow: rgba(245, 158, 11, 0.4);
+            --border-card: rgba(56, 189, 248, 0.2);
+            --text-heading: #FFFFFF;
+            --text-muted: #94A3B8;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: #F8FAFC;
+            font-family: 'Noto Sans KR', -apple-system, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* KHUNG ĐIỀU KHIỂN DÀNH CHO BẠN (TOP TOOLBAR) */
+        .admin-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(8, 14, 26, 0.96);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .admin-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--blue-korea);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-mode {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #CBD5E1;
+            padding: 7px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-mode:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--blue-korea);
+            color: #fff;
+        }
+
+        .btn-mode.active {
+            background: linear-gradient(135deg, #0284C7, #0369A1);
+            color: #FFFFFF;
+            font-weight: 700;
+            border-color: #38BDF8;
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+        }
+
+        /* CANVAS BIỂU TƯỢNG ĐỘNG HÀN QUỐC (POINTER-EVENTS: NONE ĐỂ KHÔNG CHẶN CLICK) */
+        #koreanCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* HÀO QUANG ĐỈNH TRANG NHẸ NHÀNG */
+        .ambient-korea-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 550px;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(ellipse at 50% -10%, rgba(2, 132, 199, 0.2) 0%, transparent 70%);
+        }
+
+        /* MÔ PHỎNG HEADER CỦA BẠN TRÊN LADIPAGE */
+        .mock-header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: rgba(8, 14, 26, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .mock-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #fff;
+        }
+
+        .mock-logo-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #111827;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: #F59E0B;
+        }
+
+        .mock-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mock-nav-item {
+            padding: 7px 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 13.5px;
+            color: #E2E8F0;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mock-nav-item:hover {
+            border-color: var(--blue-korea);
+            color: #fff;
+        }
+
+        .mock-nav-btn {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            color: #0F172A;
+            font-weight: 800;
+            border-color: #FCD34D;
+        }
+
+        /* MÔ PHỎNG SECTION HERO NGUYÊN BẢN CỦA TRANG HÀN */
+        .mock-hero-section {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 50px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+            min-height: 75vh;
+        }
+
+        .hero-image-box {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .hero-image-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .hero-image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(8, 14, 26, 0.95), transparent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hero-gold-badge {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 12px;
+            padding: 16px 24px;
+            width: fit-content;
+        }
+
+        .hero-gold-badge h1 {
+            font-size: 34px;
+            font-weight: 900;
+            line-height: 1.35;
+            color: #FCD34D;
+            letter-spacing: -0.5px;
+        }
+
+        .cta-big-btn {
+            background: #FFFFFF;
+            color: #D97706;
+            border: 2px solid #F59E0B;
+            font-size: 20px;
+            font-weight: 800;
+            padding: 16px 48px;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: fit-content;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.35);
+            transition: all 0.3s;
+        }
+
+        .cta-big-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 36px rgba(245, 158, 11, 0.55);
+            background: #FFFBEB;
+        }
+
+        .hero-desc-box {
+            background: rgba(14, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 20px 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-desc-box p {
+            font-size: 16px;
+            color: #E2E8F0;
+            line-height: 1.7;
+        }
+
+        /* KHUNG CHỨA CODE DÁN LADIPAGE */
+        .code-box {
+            max-width: 1200px;
+            margin: 20px auto 60px auto;
+            background: rgba(14, 23, 42, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 18px;
+            padding: 28px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .code-title {
+            color: var(--blue-korea);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .copy-btn {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--blue-korea);
+            color: #fff;
+            padding: 7px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--blue-korea);
+            color: #080E1A;
+        }
+
+        pre {
+            background: #030712;
+            padding: 18px;
+            border-radius: 12px;
+            color: #7DD3FC;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            overflow-x: auto;
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+
+        @media (max-width: 900px) {
+            .mock-hero-section {
+                grid-template-columns: 1fr;
+                padding: 30px 16px;
+            }
+            .hero-gold-badge h1 {
+                font-size: 26px;
+            }
+            .mock-header {
+                padding: 12px 16px;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .mock-nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- THANH ĐIỀU KHIỂN CHỌN BỘ BIỂU TƯỢNG HÀN QUỐC -->
+    <div class="admin-bar">
+        <div class="admin-title">
+            <span>🇰🇷 CHỌN PHONG CÁCH BIỂU TƯỢNG ĐỘNG HÀN QUỐC:</span>
+        </div>
+        <div class="theme-buttons">
+            <button class="btn-mode active" onclick="setKoreanTheme('aviation_korea')">
+                <span>✈️ ⭐ Bộ 1: Cụm Hàng Không & Định Vị Du Lịch (Incheon/Busan ✈️ Vietnam) - KHUYÊN DÙNG</span>
+            </button>
+            <button class="btn-mode" onclick="setKoreanTheme('cheonsang_constellations')">
+                <span>🌌 ✦ Bộ 2: Chòm Sao Thiên Văn Cổ Hàn Quốc (Cheonsang Yeolcha Bunyajido)</span>
+            </button>
+            <button class="btn-mode" onclick="setKoreanTheme('taegeuk_lotus')">
+                <span>🌸 ☯️ Bộ 3: Sóng Thái Cực Taegeuk & Hoa Sen Giao Thoa Việt - Hàn</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CANVAS CHUYỂN ĐỘNG CHÌM DƯỚI NỀN -->
+    <canvas id="koreanCanvas"></canvas>
+    <div class="ambient-korea-glow"></div>
+
+    <!-- MÔ PHỎNG GIAO DIỆN HIỆN TẠI TRÊN LADIPAGE (GIỮ NGUYÊN 100%) -->
+    <header class="mock-header">
+        <div class="mock-logo">
+            <div class="mock-logo-badge">EASY<br>TRIP</div>
+            <span>EASY TRIP & VISA VIETNAM</span>
+        </div>
+        <nav class="mock-nav">
+            <a href="#" class="mock-nav-item">회사 소개 (Giới thiệu)</a>
+            <a href="#" class="mock-nav-item">우리의 서비스 (Dịch vụ)</a>
+            <a href="#" class="mock-nav-item">소식 (Tin tức)</a>
+            <!-- Gợi ý chỉnh sửa lỗi '콘택트 렌즈' -> '연락처' -->
+            <a href="#" class="mock-nav-item" style="border-color: #38bdf8;" title="Nên đổi từ 콘택트 렌즈 sang 연락처">연락처 (Liên hệ)</a>
+            <a href="#" class="mock-nav-item mock-nav-btn">신청서를 제출하세요</a>
+        </nav>
+    </header>
+
+    <main class="mock-hero-section">
+        <!-- KHỐI ẢNH BÊN TRÁI NGUYÊN BẢN CỦA BẠN (HÌNH ĐÓN KHÁCH LÊN XE BUÝT) -->
+        <div class="hero-image-box">
+            <img src="vve_sleeper_bus.png" onerror="this.src='apartment_rental_1780544765071.png'" alt="Easy Trip Bus Service">
+            <div class="hero-image-overlay">
+                <span style="font-size: 24px;">🚌</span>
+                <div>
+                    <strong style="color: #F8FAFC; font-size: 14px;">베트남 전역 VIP 비자런 & 리무진 버스</strong>
+                    <p style="color: #94A3B8; font-size: 12px;">나트랑 / 무이네 / 다낭 ⟺ 라오스 / 캄보디아 국경</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KHỐI NỘI DUNG BÊN PHẢI NGUYÊN BẢN CỦA BẠN -->
+        <div class="hero-content">
+            <div class="hero-gold-badge">
+                <h1>베트남의 최고 비자 서<br>비스 제공업체</h1>
+            </div>
+
+            <a href="#" class="cta-big-btn">
+                <span>지금 신청하기</span>
+                <span>➔</span>
+            </a>
+
+            <div class="hero-desc-box">
+                <p>비자 연장 및 긴급 비자 발급을 위해 빠르고 편리하며 합리적인 비용의 솔루션을 찾고 계신가요? 저희의 긴급 비자 서비스와 전문 비자 지원 시스템이 고객님께 가장 완벽한 선택이 될 것입니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- HỘP HIỂN THỊ MÃ DÁN LADIPAGE -->
+    <div class="code-box">
+        <div class="code-header">
+            <div class="code-title" id="codeTitleLabel">MÃ DÁN LADIPAGE TIẾNG HÀN (BỘ 1: HÀNG KHÔNG & ĐỊNH VỊ DU LỊCH)</div>
+            <button class="copy-btn" onclick="copyCode()">Copy mã LadiPage</button>
+        </div>
+        <pre><code id="codeBlock"></code></pre>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('koreanCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+        // Chuột tương tác
+        const mouse = {
+            x: width * 0.5,
+            y: height * 0.4,
+            isHovered: false,
+            radius: 200
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.isHovered = true;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            mouse.isHovered = false;
+        });
+
+        let currentTheme = 'aviation_korea';
+        let particles = [];
+
+        // LỚP HẠT BIỂU TƯỢNG HÀN QUỐC
+        class KoreanCelestialNode {
+            constructor(typeOverride = null) {
+                this.reset(typeOverride);
+            }
+
+            reset(typeOverride = null) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+
+                // Phân loại:
+                // 1 = Máy bay / Cánh chim du lịch hàng không Incheon - Vietnam
+                // 2 = Ngôi sao định vị La bàn Du lịch (Compass Star)
+                // 3 = Ngôi sao 4 tia K-Sparkle
+                // 4 = Hoa văn Thái cực Taegeuk / Sen cách điệu
+                // 0 = Điểm sao tinh tú
+                if (typeOverride !== null) {
+                    this.type = typeOverride;
+                } else {
+                    const r = Math.random();
+                    if (r > 0.88) this.type = 1; // Máy bay
+                    else if (r > 0.75) this.type = 2; // La bàn
+                    else if (r > 0.6) this.type = 3; // Sao 4 tia
+                    else this.type = 0; // Tinh tú
+                }
+
+                if (this.type === 1) this.radius = 16;
+                else if (this.type === 2) this.radius = 13;
+                else if (this.type === 3) this.radius = 6;
+                else this.radius = Math.random() * 2 + 1.2;
+
+                this.baseAlpha = Math.random() * 0.35 + 0.3;
+                this.alpha = this.baseAlpha;
+                this.pulseSpeed = Math.random() * 0.02 + 0.01;
+                this.pulseAngle = Math.random() * Math.PI * 2;
+                this.rotation = Math.atan2(this.vy, this.vx);
+                this.rotSpeed = (Math.random() - 0.5) * 0.005;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.type === 1) {
+                    // Máy bay xoay theo hướng bay
+                    this.rotation = Math.atan2(this.vy, this.vx);
+                } else {
+                    this.rotation += this.rotSpeed;
+                }
+
+                this.pulseAngle += this.pulseSpeed;
+                this.alpha = this.baseAlpha + Math.sin(this.pulseAngle) * 0.15;
+
+                // Tương tác chuột
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (mouse.isHovered && dist < mouse.radius) {
+                    const force = (mouse.radius - dist) / mouse.radius;
+                    this.alpha = Math.min(1, this.baseAlpha + force * 0.65);
+                    this.x -= (dx / dist) * force * 0.6;
+                    this.y -= (dy / dist) * force * 0.6;
+                }
+
+                // Trôi tuần hoàn
+                const pad = 40;
+                if (this.x < -pad) this.x = width + pad;
+                if (this.x > width + pad) this.x = -pad;
+                if (this.y < -pad) this.y = height + pad;
+                if (this.y > height + pad) this.y = -pad;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                if (this.type === 1) {
+                    // ==========================================
+                    // BIỂU TƯỢNG MÁY BAY HÀNH TRÌNH HÀN QUỐC ✈️
+                    // ==========================================
+                    const r = this.radius;
+                    ctx.shadowColor = '#38BDF8';
+                    ctx.shadowBlur = 14;
+                    ctx.fillStyle = `rgba(56, 189, 248, ${this.alpha * 0.95})`;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha * 0.8})`;
+                    ctx.lineWidth = 1;
+
+                    ctx.beginPath();
+                    // Thân máy bay
+                    ctx.moveTo(r * 1.2, 0);
+                    ctx.lineTo(-r * 0.8, -r * 0.35);
+                    ctx.lineTo(-r * 0.5, 0);
+                    ctx.lineTo(-r * 0.8, r * 0.35);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Cánh lớn
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(-r * 0.3, -r * 1.1);
+                    ctx.lineTo(-r * 0.6, -r * 1.1);
+                    ctx.lineTo(-r * 0.2, 0);
+                    ctx.lineTo(-r * 0.6, r * 1.1);
+                    ctx.lineTo(-r * 0.3, r * 1.1);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (this.type === 2) {
+                    // ==========================================
+                    // LA BÀN ĐỊNH VỊ DU LỊCH VÀNG KIM 🧭 ⭐
+                    // ==========================================
+                    const r = this.radius;
+                    ctx.shadowColor = '#F59E0B';
+                    ctx.shadowBlur = 12;
+                    ctx.strokeStyle = `rgba(245, 158, 11, ${this.alpha})`;
+                    ctx.fillStyle = `rgba(245, 158, 11, ${this.alpha * 0.3})`;
+                    ctx.lineWidth = 1.2;
+
+                    // Vòng tròn ngoài
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // 4 cánh kim la bàn
+                    ctx.beginPath();
+                    ctx.moveTo(0, -r * 1.3);
+                    ctx.lineTo(r * 0.3, 0);
+                    ctx.lineTo(0, r * 1.3);
+                    ctx.lineTo(-r * 0.3, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fill();
+                } else if (this.type === 3) {
+                    // SAO 4 TIA LẤP LÁNH K-SPARKLE
+                    ctx.fillStyle = `rgba(245, 158, 11, ${this.alpha * 0.9})`;
+                    ctx.shadowColor = '#F59E0B';
+                    ctx.shadowBlur = 8;
+                    const s = this.radius;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s * 1.6);
+                    ctx.lineTo(s * 0.25, -s * 0.25);
+                    ctx.lineTo(s * 1.6, 0);
+                    ctx.lineTo(s * 0.25, s * 0.25);
+                    ctx.lineTo(0, s * 1.6);
+                    ctx.lineTo(-s * 0.25, s * 0.25);
+                    ctx.lineTo(-s * 1.6, 0);
+                    ctx.lineTo(-s * 0.25, -s * 0.25);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // HẠT TINH TÚ
+                    ctx.fillStyle = `rgba(56, 189, 248, ${this.alpha * 0.8})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            // Mật độ siêu thoáng (khoảng 20 - 24 điểm trên toàn màn hình)
+            const count = Math.max(16, Math.floor((width * height) / 75000));
+
+            // Đảm bảo có ít nhất 3 máy bay bay chậm và 3 la bàn
+            particles.push(new KoreanCelestialNode(1));
+            particles.push(new KoreanCelestialNode(1));
+            particles.push(new KoreanCelestialNode(1));
+            particles.push(new KoreanCelestialNode(2));
+            particles.push(new KoreanCelestialNode(2));
+
+            for (let i = 0; i < count; i++) {
+                particles.push(new KoreanCelestialNode());
+            }
+        }
+
+        // KẾT NỐI ĐƯỜNG BAY & CHÒM SAO HÀN QUỐC
+        function drawFlightRoutes() {
+            const maxDistance = 180;
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const alpha = (1 - dist / maxDistance) * 0.16 * Math.min(p1.alpha, p2.alpha);
+                        // Đường bay màu xanh Taegeuk Blue thanh mảnh
+                        ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Kết nối sợi tơ ánh sáng tới con trỏ chuột
+                if (mouse.isHovered) {
+                    const p = particles[i];
+                    const dxm = p.x - mouse.x;
+                    const dym = p.y - mouse.y;
+                    const distMouse = Math.sqrt(dxm * dxm + dym * dym);
+
+                    if (distMouse < mouse.radius) {
+                        const mouseAlpha = (1 - distMouse / mouse.radius) * 0.3;
+                        ctx.strokeStyle = `rgba(245, 158, 11, ${mouseAlpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            drawFlightRoutes();
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
+
+        // CHUYỂN ĐỔI BỘ BIỂU TƯỢNG HÀN QUỐC
+        function setKoreanTheme(theme) {
+            currentTheme = theme;
+            document.querySelectorAll('.theme-buttons .btn-mode').forEach(btn => btn.classList.remove('active'));
+
+            if (theme === 'aviation_korea') {
+                document.querySelectorAll('.theme-buttons .btn-mode')[0].classList.add('active');
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE TIẾNG HÀN: BỘ 1 - HÀNG KHÔNG & ĐỊNH VỊ DU LỊCH";
+            } else if (theme === 'cheonsang_constellations') {
+                document.querySelectorAll('.theme-buttons .btn-mode')[1].classList.add('active');
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE TIẾNG HÀN: BỘ 2 - CHÒM SAO THIÊN VĂN CỔ HÀN QUỐC";
+            } else {
+                document.querySelectorAll('.theme-buttons .btn-mode')[2].classList.add('active');
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE TIẾNG HÀN: BỘ 3 - SÓNG THÁI CỰC & HOA SEN GIAO THOA";
+            }
+
+            initParticles();
+            updateCodeSnippet();
+        }
+
+        function updateCodeSnippet() {
+            const snippet = `<style>
+/* ========================================================
+   EASY TRIP & VISA — NỀN ĐỘNG HÀN QUỐC (DEEP KOREAN NAVY & FLIGHT TRAILS)
+   - Tương thích 100% LadiPage, không chặn nút bấm, không lỗi video
+   ======================================================== */
+
+/* 1. NỀN TỔNG THỂ CỦA CÁC SECTION (ĐỔ TỪ TRẮNG SANG DEEP KOREAN NAVY CAO CẤP) */
+.ladi-section .ladi-section-background {
+  background-color: #080E1A !important;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(2, 132, 199, 0.22) 0%, transparent 65%),
+    radial-gradient(rgba(56, 189, 248, 0.12) 1.2px, transparent 1.2px) !important;
+  background-size: 100% 550px, 32px 32px !important;
+  background-repeat: no-repeat, repeat !important;
+  background-attachment: scroll, fixed !important;
+}
+
+/* 2. CANVAS BIỂU TƯỢNG ĐỘNG HÀN QUỐC CHÌM DƯỚI NỀN */
+#koreanDynamicCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+</style>
+
+<canvas id="koreanDynamicCanvas"></canvas>
+
+<script>
+(function() {
+  const c = document.getElementById('koreanDynamicCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  let w = c.width = window.innerWidth, h = c.height = window.innerHeight;
+  window.addEventListener('resize', () => { w = c.width = window.innerWidth; h = c.height = window.innerHeight; init(); });
+
+  const mouse = { x: w * 0.5, y: h * 0.4, isHover: false, radius: 200 };
+  window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.isHover = true; });
+  window.addEventListener('mouseleave', () => { mouse.isHover = false; });
+
+  let pts = [];
+  const count = Math.max(16, Math.floor((w * h) / 75000));
+
+  class KNode {
+    constructor(type) {
+      this.type = type !== undefined ? type : (Math.random() > 0.85 ? 1 : (Math.random() > 0.7 ? 2 : (Math.random() > 0.5 ? 3 : 0)));
+      this.x = Math.random() * w; this.y = Math.random() * h;
+      this.vx = (Math.random() - 0.5) * 0.3; this.vy = (Math.random() - 0.5) * 0.3;
+      this.r = this.type === 1 ? 16 : (this.type === 2 ? 13 : (this.type === 3 ? 6 : 1.8));
+      this.baseAlpha = Math.random() * 0.35 + 0.3; this.alpha = this.baseAlpha;
+      this.pulse = Math.random() * 0.02 + 0.01; this.angle = Math.random() * 6.28;
+      this.rot = Math.atan2(this.vy, this.vx); this.rotSpeed = (Math.random() - 0.5) * 0.005;
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.type === 1) this.rot = Math.atan2(this.vy, this.vx); else this.rot += this.rotSpeed;
+      this.angle += this.pulse; this.alpha = this.baseAlpha + Math.sin(this.angle) * 0.15;
+      const dx = mouse.x - this.x, dy = mouse.y - this.y, d = Math.sqrt(dx*dx + dy*dy);
+      if (mouse.isHover && d < mouse.radius) {
+        const f = (mouse.radius - d) / mouse.radius;
+        this.alpha = Math.min(1, this.baseAlpha + f * 0.65);
+        this.x -= (dx/d) * f * 0.6; this.y -= (dy/d) * f * 0.6;
+      }
+      if (this.x < -30) this.x = w + 30; if (this.x > w + 30) this.x = -30;
+      if (this.y < -30) this.y = h + 30; if (this.y > h + 30) this.y = -30;
+    }
+    draw() {
+      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+      if (this.type === 1) {
+        // Máy bay hành trình du lịch
+        const r = this.r; ctx.shadowColor = '#38BDF8'; ctx.shadowBlur = 12;
+        ctx.fillStyle = "rgba(56, 189, 248, " + (this.alpha * 0.95) + ")";
+        ctx.beginPath();
+        ctx.moveTo(r*1.2, 0); ctx.lineTo(-r*0.8, -r*0.35); ctx.lineTo(-r*0.5, 0); ctx.lineTo(-r*0.8, r*0.35);
+        ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(-r*0.3, -r*1.1); ctx.lineTo(-r*0.6, -r*1.1); ctx.lineTo(-r*0.2, 0);
+        ctx.lineTo(-r*0.6, r*1.1); ctx.lineTo(-r*0.3, r*1.1); ctx.closePath(); ctx.fill();
+      } else if (this.type === 2) {
+        // La bàn định vị vàng kim
+        const r = this.r; ctx.shadowColor = '#F59E0B'; ctx.shadowBlur = 10;
+        ctx.strokeStyle = "rgba(245, 158, 11, " + this.alpha + ")";
+        ctx.fillStyle = "rgba(245, 158, 11, " + (this.alpha * 0.3) + ")"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -r*1.3); ctx.lineTo(r*0.3, 0); ctx.lineTo(0, r*1.3); ctx.lineTo(-r*0.3, 0);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else if (this.type === 3) {
+        // Sao 4 tia
+        ctx.fillStyle = "rgba(245, 158, 11, " + this.alpha + ")"; const s = this.r;
+        ctx.beginPath(); ctx.moveTo(0, -s*1.6); ctx.lineTo(s*0.25, -s*0.25); ctx.lineTo(s*1.6, 0);
+        ctx.lineTo(s*0.25, s*0.25); ctx.lineTo(0, s*1.6); ctx.lineTo(-s*0.25, s*0.25); ctx.lineTo(-s*1.6, 0);
+        ctx.lineTo(-s*0.25, -s*0.25); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = "rgba(56, 189, 248, " + (this.alpha * 0.8) + ")";
+        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function init() {
+    pts = [];
+    pts.push(new KNode(1)); pts.push(new KNode(1)); pts.push(new KNode(1));
+    pts.push(new KNode(2)); pts.push(new KNode(2));
+    for (let i = 0; i < count; i++) pts.push(new KNode());
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 180) {
+          ctx.strokeStyle = "rgba(56, 189, 248, " + ((1 - d/180) * 0.16) + ")";
+          ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
+        }
+      }
+      if (mouse.isHover) {
+        const dxm = pts[i].x - mouse.x, dym = pts[i].y - mouse.y, dm = Math.sqrt(dxm*dxm + dym*dym);
+        if (dm < mouse.radius) {
+          ctx.strokeStyle = "rgba(245, 158, 11, " + ((1 - dm/mouse.radius) * 0.3) + ")";
+          ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+        }
+      }
+      pts[i].update(); pts[i].draw();
+    }
+    requestAnimationFrame(loop);
+  }
+  init(); loop();
+})();
+<\\/script>`;
+            document.getElementById('codeBlock').innerText = snippet;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeBlock').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerText = '✓ Đã copy thành công!';
+                btn.style.background = '#10B981';
+                setTimeout(() => {
+                    btn.innerText = 'Copy mã LadiPage';
+                    btn.style.background = 'rgba(56, 189, 248, 0.15)';
+                }, 2000);
+            });
+        }
+
+        updateCodeSnippet();
+    </script>
+</body>
+</html>
