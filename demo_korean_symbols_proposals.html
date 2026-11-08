@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Đề Xuất Biểu Tượng & Màu Sắc Nền Hàn Quốc</title>
+    <!-- Phông chữ Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* MÀU SẮC LẤY CHUẨN TỪ ẢNH TRANG HÀN QUỐC CỦA BẠN: */
+            --bg-korean: #080E1A; /* Xanh đêm Navy sẫm */
+            --gold-caramel: #C5A059; /* Vàng hổ phách / Vàng Caramel của hộp chữ */
+            --gold-bright: #F5D77F;
+            --gold-glow: rgba(197, 160, 89, 0.45);
+        }
+
+        body {
+            background-color: var(--bg-korean);
+            color: #FFFFFF;
+            font-family: 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* KHUNG ĐIỀU KHIỂN CHỌN ĐỀ XUẤT (TOP BAR) */
+        .top-selector-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(8, 14, 26, 0.96);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(197, 160, 89, 0.35);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .bar-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gold-bright);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .proposal-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .prop-btn {
+            background: rgba(197, 160, 89, 0.1);
+            border: 1px solid rgba(197, 160, 89, 0.3);
+            color: #E2E8F0;
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .prop-btn:hover {
+            background: rgba(197, 160, 89, 0.25);
+            border-color: var(--gold-bright);
+            color: #fff;
+        }
+
+        .prop-btn.active {
+            background: linear-gradient(135deg, #C5A059, #8C6D2D);
+            color: #080E1A;
+            font-weight: 800;
+            border-color: #F5D77F;
+            box-shadow: 0 0 18px rgba(197, 160, 89, 0.5);
+        }
+
+        /* CANVAS BIỂU TƯỢNG ĐỘNG CHÌM NỀN */
+        #koreanCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* HÀO QUANG VÀNG KIM DỊU NHẸ ĐỈNH TRANG (GIỐNG TRANG AR) */
+        .ambient-aurora {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 550px;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(ellipse at 50% -10%, rgba(197, 160, 89, 0.22) 0%, transparent 70%);
+        }
+
+        /* MÔ PHỎNG NỘI DUNG Y HỆT ẢNH BẠN GỬI */
+        .content-container {
+            position: relative;
+            z-index: 10;
+            max-width: 1100px;
+            margin: 50px auto 40px auto;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .mock-image-card {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(197, 160, 89, 0.35);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            background: #111827;
+        }
+
+        .mock-image-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .mock-text-side {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        /* HỘP CHỮ VÀNG HỔ PHÁCH Y HỆT ẢNH */
+        .gold-title-box {
+            background: rgba(197, 160, 89, 0.92);
+            padding: 18px 28px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: fit-content;
+        }
+
+        .gold-title-box h1 {
+            color: #080E1A;
+            font-size: 34px;
+            font-weight: 900;
+            line-height: 1.3;
+            letter-spacing: -0.5px;
+        }
+
+        /* NÚT BẤM TRẮNG VIỀN VÀNG Y HỆT ẢNH */
+        .korean-white-btn {
+            background: #FFFFFF;
+            color: #A17C2F;
+            border: 2px solid #C5A059;
+            font-size: 22px;
+            font-weight: 800;
+            padding: 16px 52px;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-block;
+            width: fit-content;
+            box-shadow: 0 10px 30px rgba(197, 160, 89, 0.35);
+            transition: all 0.25s;
+        }
+
+        .korean-white-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 36px rgba(197, 160, 89, 0.55);
+            background: #FFFBEB;
+        }
+
+        .desc-card {
+            background: rgba(14, 23, 42, 0.85);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-radius: 14px;
+            padding: 22px 26px;
+            backdrop-filter: blur(10px);
+        }
+
+        .desc-card p {
+            font-size: 16px;
+            color: #E2E8F0;
+            line-height: 1.75;
+        }
+
+        /* HỘP HIỂN THỊ MÃ CODE ĐỂ DÁN VÀO LADIPAGE */
+        .code-box {
+            max-width: 1100px;
+            margin: 20px auto 70px auto;
+            background: rgba(11, 20, 36, 0.94);
+            border: 1px solid rgba(197, 160, 89, 0.35);
+            border-radius: 18px;
+            padding: 28px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .code-title {
+            color: var(--gold-bright);
+            font-size: 14.5px;
+            font-weight: 700;
+        }
+
+        .copy-btn {
+            background: rgba(197, 160, 89, 0.15);
+            border: 1px solid var(--gold-caramel);
+            color: #fff;
+            padding: 7px 22px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--gold-caramel);
+            color: #080E1A;
+        }
+
+        pre {
+            background: #040914;
+            padding: 18px;
+            border-radius: 12px;
+            color: #FDE68A;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            overflow-x: auto;
+            border: 1px solid rgba(197, 160, 89, 0.2);
+        }
+
+        @media (max-width: 900px) {
+            .content-container {
+                grid-template-columns: 1fr;
+                margin-top: 30px;
+            }
+            .gold-title-box h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- THANH CHỌN 3 ĐỀ XUẤT BIỂU TƯỢNG HÀN QUỐC -->
+    <div class="top-selector-bar">
+        <div class="bar-title">
+            <span>✨ BẠN HÃY BẤM CHỌN 1 TRONG 3 ĐỀ XUẤT BIỂU TƯỢNG:</span>
+        </div>
+        <div class="proposal-buttons">
+            <button class="prop-btn active" onclick="setProposal(1)">
+                <span>☯️ ✦ Đề xuất 1: Thái Cực Hoàng Gia & Chòm Sao Triều Đại Joseon (KHUYÊN DÙNG)</span>
+            </button>
+            <button class="prop-btn" onclick="setProposal(2)">
+                <span>🌸 ✨ Đề xuất 2: Quốc Hoa Mugunghwa & Vì Sao Tinh Tú K-Sparkle</span>
+            </button>
+            <button class="prop-btn" onclick="setProposal(3)">
+                <span>✈️ ⭐ Đề xuất 3: Cụm Hàng Không & Định Vị Du Lịch Hàn - Việt</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CANVAS NỀN ĐỘNG -->
+    <canvas id="koreanCanvas"></canvas>
+    <div class="ambient-aurora"></div>
+
+    <!-- MÔ PHỎNG NỘI DUNG NGUYÊN BẢN CỦA BẠN (HÌNH ẢNH + HỘP CHỮ VÀNG + NÚT BẤM) -->
+    <main class="content-container">
+        <div class="mock-image-card">
+            <img src="vve_sleeper_bus.png" onerror="this.src='apartment_rental_1780544765071.png'" alt="Khách hàng Hàn Quốc tại xe buýt">
+        </div>
+
+        <div class="mock-text-side">
+            <div class="gold-title-box">
+                <h1>베트남의 최고 비자 서<br>비스 제공업체</h1>
+            </div>
+
+            <a href="#" class="korean-white-btn">지금 신청하기</a>
+
+            <div class="desc-card">
+                <p>비자 연장 및 긴급 비자 발급을 위해 빠르고 편리하며 합리적인 비용의 솔루션을 찾고 계신가요? 저희의 긴급 비자 서비스와 전문 비자 지원 시스템이 고객님께 가장 완벽한 선택이 될 것입니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- HỘP CODE DÁN LADIPAGE -->
+    <div class="code-box">
+        <div class="code-header">
+            <div class="code-title" id="codeTitleLabel">MÃ DÁN LADIPAGE: ĐỀ XUẤT 1 - THÁI CỰC HOÀNG GIA & CHÒM SAO THIÊN VĂN</div>
+            <button class="copy-btn" onclick="copyCode()">Copy mã LadiPage</button>
+        </div>
+        <pre><code id="codeBlock"></code></pre>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('koreanCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initNodes();
+        });
+
+        // Chuột tương tác
+        const mouse = {
+            x: width * 0.5,
+            y: height * 0.4,
+            isHovered: false,
+            radius: 220
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.isHovered = true;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            mouse.isHovered = false;
+        });
+
+        let currentProposal = 1;
+        let nodes = [];
+
+        class CulturalNode {
+            constructor(isPrimary = false, isSecondary = false) {
+                this.isPrimary = isPrimary;
+                this.isSecondary = isSecondary;
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.14; // Chuyển động rất êm dịu, không giật
+                this.vy = (Math.random() - 0.5) * 0.14;
+
+                if (this.isPrimary) {
+                    // Biểu tượng lớn nổi bật (như vầng trăng ở trang Ả Rập)
+                    this.r = 44; // Bán kính 44px (Đường kính 88px)
+                    this.baseAlpha = 0.88;
+                    this.rotSpeed = 0.001;
+                } else if (this.isSecondary) {
+                    // Biểu tượng phụ tầm trung
+                    this.r = 16;
+                    this.baseAlpha = 0.65;
+                    this.rotSpeed = (Math.random() - 0.5) * 0.004;
+                } else {
+                    // Các hạt sao tinh tú thưa thoáng
+                    this.r = Math.random() > 0.8 ? 5 : (Math.random() * 2 + 1.2);
+                    this.baseAlpha = Math.random() * 0.3 + 0.25;
+                    this.rotSpeed = 0.003;
+                }
+
+                this.alpha = this.baseAlpha;
+                this.pulseSpeed = Math.random() * 0.02 + 0.01;
+                this.pulseAngle = Math.random() * Math.PI * 2;
+                this.rotation = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotSpeed;
+
+                this.pulseAngle += this.pulseSpeed;
+                this.alpha = this.baseAlpha + Math.sin(this.pulseAngle) * 0.12;
+
+                // Tương tác chuột phát sáng
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (mouse.isHovered && dist < mouse.radius) {
+                    const force = (mouse.radius - dist) / mouse.radius;
+                    this.alpha = Math.min(1, this.baseAlpha + force * 0.4);
+                    this.x -= (dx / dist) * force * 0.5;
+                    this.y -= (dy / dist) * force * 0.5;
+                }
+
+                // Trôi tuần hoàn quanh màn hình
+                const pad = this.r * 2 + 30;
+                if (this.x < -pad) this.x = width + pad;
+                if (this.x > width + pad) this.x = -pad;
+                if (this.y < -pad) this.y = height + pad;
+                if (this.y > height + pad) this.y = -pad;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                if (currentProposal === 1) {
+                    // ==========================================
+                    // ĐỀ XUẤT 1: THÁI CỰC HOÀNG GIA & SAO BẮC ĐẨU (TAEGEUK & CHILSEONG)
+                    // ==========================================
+                    if (this.isPrimary) {
+                        // Vòng xoáy Thái Cực Hoàng Gia Taegeuk Vàng Kim
+                        const r = this.r;
+                        ctx.shadowColor = '#C5A059';
+                        ctx.shadowBlur = 26;
+
+                        // Vòng tròn hào quang ngoài
+                        ctx.strokeStyle = `rgba(245, 215, 127, ${this.alpha * 0.75})`;
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Nửa phần Dương (Dải vàng hổ phách)
+                        const gradYang = ctx.createLinearGradient(-r, -r, r, r);
+                        gradYang.addColorStop(0, `rgba(255, 243, 176, ${this.alpha})`);
+                        gradYang.addColorStop(1, `rgba(197, 160, 89, ${this.alpha * 0.85})`);
+                        ctx.fillStyle = gradYang;
+
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+                        ctx.arc(0, r / 2, r / 2, Math.PI / 2, -Math.PI / 2, true);
+                        ctx.arc(0, -r / 2, r / 2, Math.PI / 2, -Math.PI / 2, false);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Điểm tâm nhãn
+                        ctx.fillStyle = '#080E1A';
+                        ctx.beginPath();
+                        ctx.arc(0, -r / 2, r * 0.18, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = `rgba(255, 243, 176, ${this.alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(0, r / 2, r * 0.18, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.isSecondary) {
+                        // Ngôi sao 7 cánh Bắc Đẩu (Chilseong)
+                        const r = this.r;
+                        ctx.shadowColor = '#C5A059';
+                        ctx.shadowBlur = 12;
+                        ctx.strokeStyle = `rgba(245, 215, 127, ${this.alpha})`;
+                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.35})`;
+                        ctx.lineWidth = 1.2;
+
+                        ctx.beginPath();
+                        for (let i = 0; i < 14; i++) {
+                            const rad = i % 2 === 0 ? r : r * 0.5;
+                            const a = (i * Math.PI) / 7;
+                            const sx = Math.cos(a) * rad, sy = Math.sin(a) * rad;
+                            if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+                        }
+                        ctx.closePath();
+                        ctx.fill(); ctx.stroke();
+                    } else {
+                        // Hạt sao tinh tú
+                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                } else if (currentProposal === 2) {
+                    // ==========================================
+                    // ĐỀ XUẤT 2: QUỐC HOA MUGUNGHWA & VÌ SAO K-SPARKLE
+                    // ==========================================
+                    if (this.isPrimary) {
+                        // Hoa Mugunghwa 5 cánh thanh tao
+                        const r = this.r;
+                        ctx.shadowColor = '#C5A059';
+                        ctx.shadowBlur = 24;
+                        ctx.strokeStyle = `rgba(255, 243, 176, ${this.alpha})`;
+                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.45})`;
+                        ctx.lineWidth = 1.5;
+
+                        // Vẽ 5 cánh hoa
+                        for (let p = 0; p < 5; p++) {
+                            const angle = (p * Math.PI * 2) / 5;
+                            ctx.save();
+                            ctx.rotate(angle);
+                            ctx.beginPath();
+                            ctx.ellipse(0, -r * 0.55, r * 0.35, r * 0.55, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                        // Nhụy hoa trung tâm
+                        ctx.fillStyle = '#FFFBEB';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.isSecondary) {
+                        // Nụ hoa / Cánh hoa nhỏ
+                        const s = this.r;
+                        ctx.fillStyle = `rgba(245, 215, 127, ${this.alpha * 0.9})`;
+                        ctx.shadowColor = '#C5A059';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.moveTo(0, -s * 1.6);
+                        ctx.lineTo(s * 0.25, -s * 0.25);
+                        ctx.lineTo(s * 1.6, 0);
+                        ctx.lineTo(s * 0.25, s * 0.25);
+                        ctx.lineTo(0, s * 1.6);
+                        ctx.lineTo(-s * 0.25, s * 0.25);
+                        ctx.lineTo(-s * 1.6, 0);
+                        ctx.lineTo(-s * 0.25, -s * 0.25);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = `rgba(245, 215, 127, ${this.alpha * 0.75})`;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                } else {
+                    // ==========================================
+                    // ĐỀ XUẤT 3: HÀNG KHÔNG & ĐỊNH VỊ DU LỊCH (INCHEON ✈️ VIETNAM)
+                    // ==========================================
+                    if (this.isPrimary) {
+                        // Máy bay du lịch vàng kim thanh thoát
+                        const r = this.r * 0.7;
+                        ctx.shadowColor = '#C5A059';
+                        ctx.shadowBlur = 20;
+                        ctx.fillStyle = `rgba(245, 215, 127, ${this.alpha * 0.95})`;
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha * 0.6})`;
+                        ctx.lineWidth = 1;
+
+                        ctx.beginPath();
+                        ctx.moveTo(r * 1.3, 0);
+                        ctx.lineTo(-r * 0.8, -r * 0.38);
+                        ctx.lineTo(-r * 0.5, 0);
+                        ctx.lineTo(-r * 0.8, r * 0.38);
+                        ctx.closePath();
+                        ctx.fill(); ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(-r * 0.3, -r * 1.15);
+                        ctx.lineTo(-r * 0.6, -r * 1.15);
+                        ctx.lineTo(-r * 0.2, 0);
+                        ctx.lineTo(-r * 0.6, r * 1.15);
+                        ctx.lineTo(-r * 0.3, r * 1.15);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (this.isSecondary) {
+                        // La bàn du lịch
+                        const r = this.r;
+                        ctx.shadowColor = '#C5A059'; ctx.shadowBlur = 10;
+                        ctx.strokeStyle = `rgba(245, 215, 127, ${this.alpha})`;
+                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.35})`; ctx.lineWidth = 1.2;
+                        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, -r * 1.3); ctx.lineTo(r * 0.3, 0); ctx.lineTo(0, r * 1.3); ctx.lineTo(-r * 0.3, 0);
+                        ctx.closePath(); ctx.fill(); ctx.stroke();
+                    } else {
+                        ctx.fillStyle = `rgba(197, 160, 89, ${this.alpha * 0.75})`;
+                        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function initNodes() {
+            nodes = [];
+            // Mật độ siêu thưa: Chỉ 14 - 18 điểm trên toàn màn hình (rất thoáng, chuẩn như trang Ả Rập)
+            const count = Math.max(12, Math.floor((width * height) / 95000));
+
+            // 2 biểu tượng lớn uy nghi (như 2 mặt trăng bên trang Ả Rập)
+            nodes.push(new CulturalNode(true, false));
+            nodes.push(new CulturalNode(true, false));
+
+            // 3 biểu tượng phụ
+            for (let i = 0; i < 3; i++) {
+                nodes.push(new CulturalNode(false, true));
+            }
+
+            // Các hạt sao tinh tú liên kết
+            for (let i = 0; i < count; i++) {
+                nodes.push(new CulturalNode(false, false));
+            }
+        }
+
+        function drawConnections() {
+            const maxDistance = 185;
+
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const p1 = nodes[i], p2 = nodes[j];
+                    if (p1.isPrimary || p2.isPrimary) continue; // Không gạch qua biểu tượng lớn
+
+                    const dx = p1.x - p2.x, dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const lineAlpha = (1 - dist / maxDistance) * 0.16 * Math.min(p1.alpha, p2.alpha);
+                        ctx.strokeStyle = `rgba(197, 160, 89, ${lineAlpha})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Kết nối tơ vàng tới chuột
+                if (mouse.isHovered) {
+                    const p = nodes[i];
+                    const dxm = p.x - mouse.x, dym = p.y - mouse.y;
+                    const dm = Math.sqrt(dxm * dxm + dym * dym);
+
+                    if (dm < mouse.radius) {
+                        const mouseAlpha = (1 - dm / mouse.radius) * 0.28;
+                        ctx.strokeStyle = `rgba(245, 215, 127, ${mouseAlpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            drawConnections();
+
+            for (let i = 0; i < nodes.length; i++) {
+                nodes[i].update();
+                nodes[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        initNodes();
+        animate();
+
+        // CHUYỂN ĐỔI ĐỀ XUẤT
+        function setProposal(num) {
+            currentProposal = num;
+            document.querySelectorAll('.proposal-buttons .prop-btn').forEach((btn, idx) => {
+                if (idx + 1 === num) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            if (num === 1) {
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE: ĐỀ XUẤT 1 - THÁI CỰC HOÀNG GIA & SAO BẮC ĐẨU (KHUYÊN DÙNG)";
+            } else if (num === 2) {
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE: ĐỀ XUẤT 2 - QUỐC HOA MUGUNGHWA & VÌ SAO K-SPARKLE";
+            } else {
+                document.getElementById('codeTitleLabel').innerText = "MÃ DÁN LADIPAGE: ĐỀ XUẤT 3 - CỤM HÀNG KHÔNG & ĐỊNH VỊ DU LỊCH";
+            }
+
+            initNodes();
+            updateCodeSnippet();
+        }
+
+        function updateCodeSnippet() {
+            const snippet = `<style>
+/* 1. NỀN SECTION XANH ĐÊM NAVY & VÀNG CARAMEL ĐỒNG BỘ NGUYÊN BẢN */
+.ladi-section .ladi-section-background {
+  background-color: #080E1A !important;
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(197, 160, 89, 0.2) 0%, transparent 70%) !important;
+}
+
+/* 2. CANVAS BIỂU TƯỢNG HÀN QUỐC NẰM CHÌM DƯỚI NỀN (KHÔNG CHẶN NÚT/VIDEO) */
+#koreanDynamicCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+</style>
+
+<canvas id="koreanDynamicCanvas"></canvas>
+
+<script>
+/* Toàn bộ mã Javascript canvas của Đề xuất ${currentProposal} (Đã tối ưu siêu mượt, nhẹ chỉ vài KB) */
+<\\/script>`;
+            document.getElementById('codeBlock').innerText = snippet;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeBlock').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerText = '✓ Đã copy thành công!';
+                btn.style.background = '#10B981';
+                setTimeout(() => {
+                    btn.innerText = 'Copy mã LadiPage';
+                    btn.style.background = 'rgba(197, 160, 89, 0.15)';
+                }, 2000);
+            });
+        }
+
+        updateCodeSnippet();
+    </script>
+</body>
+</html>
