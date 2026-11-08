@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Nền Đơn Giản & Đẹp Giống Trang Ả Rập</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #080E1A;
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 1. NỀN SECTION HOÀNG GIA ĐẲNG CẤP NHƯ Ả RẬP */
+        .ladi-section .ladi-section-background {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #080E1A !important;
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.2) 0%, transparent 70%) !important;
+            z-index: 0;
+        }
+
+        /* 2. CANVAS CHÒM SAO & MẶT TRĂNG NẰM CHÌM DƯỚI NỀN */
+        #koreanConstellationCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none !important;
+            z-index: 1 !important;
+        }
+
+        /* MÔ PHỎNG KHUNG NỘI DUNG */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1000px;
+            margin: 80px auto;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .gold-badge {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(184, 134, 11, 0.1));
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            display: inline-block;
+            padding: 16px 36px;
+            border-radius: 14px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 38px;
+            font-weight: 900;
+            color: #FCD34D;
+            line-height: 1.4;
+        }
+
+        .cta-btn {
+            background: #FFFFFF;
+            color: #B8860B;
+            border: 2px solid #D4AF37;
+            font-size: 22px;
+            font-weight: 800;
+            padding: 16px 54px;
+            border-radius: 999px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.35);
+        }
+
+        p {
+            margin-top: 24px;
+            color: #CBD5E1;
+            font-size: 16px;
+            line-height: 1.8;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ladi-section">
+        <div class="ladi-section-background"></div>
+    </div>
+
+    <canvas id="koreanConstellationCanvas"></canvas>
+
+    <div class="container">
+        <div class="gold-badge">
+            <h1>베트남의 최고 비자 서비스 제공업체</h1>
+        </div>
+        <br>
+        <a href="#" class="cta-btn">지금 신청하기</a>
+        <p>비자 연장 및 긴급 비자 발급을 위해 빠르고 편리하며 합리적인 비용의 솔루션을 찾고 계신가요? 저희의 긴급 비자 서비스와 전문 비자 지원 시스템이 고객님께 가장 완벽한 선택이 될 것입니다.</p>
+    </div>
+
+    <script>
+    (function() {
+      const c = document.getElementById('koreanConstellationCanvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      let w = c.width = window.innerWidth, h = c.height = window.innerHeight;
+      window.addEventListener('resize', () => { w = c.width = window.innerWidth; h = c.height = window.innerHeight; init(); });
+
+      const mouse = { x: w * 0.5, y: h * 0.4, isHover: false, radius: 220 };
+      window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.isHover = true; });
+      window.addEventListener('mouseleave', () => { mouse.isHover = false; });
+
+      let pts = [];
+      const moonR = 48; // Mặt trăng lớn rõ ràng
+      const count = Math.max(12, Math.floor((w * h) / 95000));
+
+      class Star {
+        constructor(isMoon, isStar8) {
+          this.isMoon = isMoon; this.isStar8 = isStar8;
+          this.x = Math.random() * w; this.y = Math.random() * h;
+          if (this.isMoon) {
+            this.vx = (Math.random() - 0.5) * 0.12; this.vy = (Math.random() - 0.5) * 0.12;
+            this.r = moonR; this.baseAlpha = 0.88; this.pulse = 0.01; this.rot = -0.25;
+          } else if (this.isStar8) {
+            this.vx = (Math.random() - 0.5) * 0.18; this.vy = (Math.random() - 0.5) * 0.18;
+            this.r = 16; this.baseAlpha = 0.6; this.pulse = 0.015; this.rot = Math.random() * 6.28;
+          } else {
+            this.vx = (Math.random() - 0.5) * 0.22; this.vy = (Math.random() - 0.5) * 0.22;
+            const sp = Math.random() > 0.8; this.type = sp ? 3 : 0;
+            this.r = sp ? 6 : (Math.random() * 2 + 1.5);
+            this.baseAlpha = Math.random() * 0.3 + 0.25; this.pulse = 0.02; this.rot = 0;
+          }
+          this.alpha = this.baseAlpha; this.angle = Math.random() * 6.28;
+        }
+        update() {
+          this.x += this.vx; this.y += this.vy;
+          if (this.isMoon) this.rot += 0.0005; else this.rot += 0.003;
+          this.angle += this.pulse;
+          this.alpha = this.baseAlpha + Math.sin(this.angle) * 0.12;
+          const dx = mouse.x - this.x, dy = mouse.y - this.y, dist = Math.sqrt(dx*dx + dy*dy);
+          if (mouse.isHover && dist < mouse.radius) {
+            const force = (mouse.radius - dist) / mouse.radius;
+            this.alpha = Math.min(1, this.baseAlpha + force * 0.35);
+            this.x -= (dx/dist) * force * 0.5; this.y -= (dy/dist) * force * 0.5;
+          }
+          const pad = this.r * 2 + 20;
+          if (this.x < -pad) this.x = w + pad; if (this.x > w + pad) this.x = -pad;
+          if (this.y < -pad) this.y = h + pad; if (this.y > h + pad) this.y = -pad;
+        }
+        draw() {
+          ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+          if (this.isMoon) {
+            const r = this.r;
+            ctx.shadowColor = '#D4AF37'; ctx.shadowBlur = 28;
+            const grad = ctx.createLinearGradient(-r, -r, r, r);
+            grad.addColorStop(0, "rgba(255, 243, 176, " + this.alpha + ")");
+            grad.addColorStop(0.5, "rgba(245, 215, 127, " + (this.alpha * 0.95) + ")");
+            grad.addColorStop(1, "rgba(184, 134, 11, " + (this.alpha * 0.85) + ")");
+            ctx.fillStyle = grad; ctx.beginPath();
+            ctx.arc(0, 0, r, 0.35 * Math.PI, 1.65 * Math.PI, false);
+            ctx.arc(r * 0.42, 0, r * 0.88, 1.55 * Math.PI, 0.45 * Math.PI, true);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, " + (this.alpha * 0.4) + ")"; ctx.lineWidth = 1; ctx.stroke();
+            
+            // Ngôi sao nhỏ trong lòng trăng
+            const sd = r * 0.52, ss = r * 0.22;
+            ctx.save(); ctx.translate(sd, 0); ctx.fillStyle = "rgba(255, 243, 176, " + this.alpha + ")";
+            ctx.beginPath();
+            for (let s = 0; s < 8; s++) {
+              const rad = s % 2 === 0 ? ss : ss * 0.45, a = (s * Math.PI) / 4;
+              const sx = Math.cos(a) * rad, sy = Math.sin(a) * rad;
+              if (s === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath(); ctx.fill(); ctx.restore();
+          } else if (this.isStar8) {
+            const r = this.r; ctx.shadowColor = '#D4AF37'; ctx.shadowBlur = 10;
+            ctx.strokeStyle = "rgba(245, 215, 127, " + this.alpha + ")";
+            ctx.fillStyle = "rgba(212, 175, 55, " + (this.alpha * 0.28) + ")"; ctx.lineWidth = 1.3;
+            ctx.beginPath();
+            for (let i = 0; i < 16; i++) {
+              const rad = i % 2 === 0 ? r : r * 0.52, a = (i * Math.PI) / 8;
+              ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * rad, Math.sin(a) * rad);
+            }
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, r * 0.28, 0, Math.PI * 2); ctx.stroke();
+          } else if (this.type === 3) {
+            ctx.fillStyle = "rgba(245, 215, 127, " + this.alpha + ")";
+            const s = this.r; ctx.beginPath();
+            ctx.moveTo(0, -s*1.8); ctx.lineTo(s*0.3, -s*0.3); ctx.lineTo(s*1.8, 0); ctx.lineTo(s*0.3, s*0.3);
+            ctx.lineTo(0, s*1.8); ctx.lineTo(-s*0.3, s*0.3); ctx.lineTo(-s*1.8, 0); ctx.lineTo(-s*0.3, -s*0.3);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = "rgba(212, 175, 55, " + (this.alpha * 0.75) + ")";
+            ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function init() {
+        pts = [];
+        pts.push(new Star(true, false));
+        pts.push(new Star(true, false));
+        for (let i = 0; i < 3; i++) pts.push(new Star(false, true));
+        for (let i = 0; i < count; i++) pts.push(new Star(false, false));
+      }
+
+      function loop() {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < pts.length; i++) {
+          for (let j = i + 1; j < pts.length; j++) {
+            const p1 = pts[i], p2 = pts[j];
+            if (p1.isMoon || p2.isMoon) continue;
+            const dx = p1.x - p2.x, dy = p1.y - p2.y, d = Math.sqrt(dx*dx + dy*dy);
+            if (d < 190) {
+              ctx.strokeStyle = "rgba(212, 175, 55, " + ((1 - d/190) * 0.15) + ")";
+              ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+            }
+          }
+          if (mouse.isHover) {
+            const dxm = pts[i].x - mouse.x, dym = pts[i].y - mouse.y, dm = Math.sqrt(dxm*dxm + dym*dym);
+            if (dm < mouse.radius) {
+              ctx.strokeStyle = "rgba(245, 215, 127, " + ((1 - dm/mouse.radius) * 0.28) + ")";
+              ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+            }
+          }
+          pts[i].update(); pts[i].draw();
+        }
+        requestAnimationFrame(loop);
+      }
+      init(); loop();
+    })();
+    </script>
+</body>
+</html>
