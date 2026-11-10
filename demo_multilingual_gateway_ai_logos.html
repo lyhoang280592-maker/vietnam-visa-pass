@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Trip & Visa — Cổng Chào Ngôn Ngữ & Logo Đề Xuất AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@700&family=Noto+Sans+KR:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #060B14;
+            color: #FFFFFF;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
+            position: relative;
+        }
+
+        /* NỀN SAO ĐÊM VƯƠNG GIẢ */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 50% 10%, rgba(212, 175, 55, 0.18) 0%, transparent 60%),
+                radial-gradient(circle at 85% 85%, rgba(2, 132, 199, 0.12) 0%, transparent 50%),
+                #060B14;
+            z-index: 1;
+        }
+
+        /* THANH ĐIỀU KHIỂN CHUYỂN VIEW DESKTOP / MOBILE */
+        .view-bar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 999px;
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: #94A3B8;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, #D4AF37, #B8860B);
+            color: #060B14;
+            font-weight: 800;
+        }
+
+        /* KHUNG WRAPPER CHÍNH */
+        .gateway-box {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 720px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .gateway-box.mobile-mode {
+            max-width: 400px;
+        }
+
+        /* CARD POPUP GLASSMORPISHM CAO CẤP */
+        .vip-card {
+            background: rgba(11, 18, 33, 0.92);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1.8px solid rgba(212, 175, 55, 0.42);
+            border-radius: 30px;
+            padding: 38px 32px 32px 32px;
+            text-align: center;
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.8),
+                0 0 45px rgba(212, 175, 55, 0.2),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            animation: cardPopupIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardPopupIn {
+            from { opacity: 0; transform: translateY(25px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* HÀO QUANG ÁNH SÁNG ĐỈNH */
+        .vip-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #FFF3B0, #D4AF37, #FFF3B0, transparent);
+            box-shadow: 0 0 18px #D4AF37;
+        }
+
+        /* BADGE LOGO DẪN ĐẦU */
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            padding: 6px 18px;
+            border-radius: 999px;
+            color: #F5D77F;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        /* LỜI CHÀO THEO ĐÚNG YÊU CẦU */
+        .welcome-heading {
+            font-size: 26px;
+            font-weight: 900;
+            line-height: 1.35;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #FFFFFF 20%, #F5D77F 65%, #D4AF37 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .welcome-sub {
+            font-size: 13.5px;
+            color: #94A3B8;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        /* LƯỚI 4 NÚT NGÔN NGỮ */
+        .flags-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            margin-bottom: 34px;
+        }
+
+        .flag-card {
+            background: rgba(18, 27, 47, 0.7);
+            border: 1.5px solid rgba(212, 175, 55, 0.25);
+            border-radius: 20px;
+            padding: 18px 14px;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .flag-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            background: rgba(28, 41, 68, 0.9);
+            border-color: #F5D77F;
+            box-shadow: 
+                0 20px 45px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(212, 175, 55, 0.35);
+        }
+
+        .flag-card:active {
+            transform: scale(0.98);
+        }
+
+        .flag-circle {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            padding: 3px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.8), rgba(255, 255, 255, 0.2));
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .flag-card:hover .flag-circle {
+            transform: scale(1.08) rotate(3deg);
+            background: linear-gradient(135deg, #FFF3B0, #D4AF37);
+            box-shadow: 0 12px 28px rgba(212, 175, 55, 0.55);
+        }
+
+        .flag-circle img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .lang-text-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .lang-primary {
+            font-size: 16px;
+            font-weight: 800;
+            color: #FFFFFF;
+            transition: color 0.25s;
+        }
+
+        .flag-card:hover .lang-primary {
+            color: #F5D77F;
+        }
+
+        .lang-secondary {
+            font-size: 12px;
+            color: #94A3B8;
+            font-weight: 500;
+        }
+
+        .flag-card.ar .lang-primary { font-family: 'Noto Sans Arabic', sans-serif; font-size: 18px; }
+        .flag-card.kr .lang-primary { font-family: 'Noto Sans KR', sans-serif; }
+
+        /* ========================================================
+           KHU VỰC DƯỚI CÙNG: SỰ ĐỀ XUẤT & CÁC LOGO AI / ĐỐI TÁC
+           ======================================================== */
+        .recommendation-zone {
+            border-top: 1px solid rgba(212, 175, 55, 0.2);
+            padding-top: 22px;
+            margin-top: 10px;
+        }
+
+        .recommendation-title {
+            font-size: 12.5px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #D4AF37;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .recommendation-title::before,
+        .recommendation-title::after {
+            content: '';
+            width: 32px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5));
+        }
+        .recommendation-title::after {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.5), transparent);
+        }
+
+        /* LƯỚI LOGO CÔNG NGHỆ & ĐỐI TÁC */
+        .logos-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+        }
+
+        .brand-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #CBD5E1;
+            transition: all 0.25s;
+            text-decoration: none;
+        }
+
+        .brand-item:hover {
+            background: rgba(212, 175, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.5);
+            color: #FFFFFF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.2);
+        }
+
+        .brand-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* HỘP MÃ CODE LADIPAGE */
+        .code-zone {
+            margin-top: 36px;
+            background: rgba(11, 18, 33, 0.95);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .code-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .code-heading-txt {
+            color: #F5D77F;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .copy-code-btn {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #D4AF37;
+            color: #fff;
+            padding: 7px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-code-btn:hover {
+            background: #D4AF37;
+            color: #060B14;
+        }
+
+        pre {
+            background: #030712;
+            padding: 16px;
+            border-radius: 12px;
+            color: #E2E8F0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow-x: auto;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        @media (max-width: 600px) {
+            .vip-card {
+                padding: 28px 16px 24px 16px;
+                border-radius: 24px;
+            }
+            .welcome-heading {
+                font-size: 20px;
+            }
+            .flags-grid {
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+            .flag-card {
+                padding: 14px 8px;
+                border-radius: 16px;
+            }
+            .flag-circle {
+                width: 62px;
+                height: 62px;
+            }
+            .lang-primary {
+                font-size: 14px;
+            }
+            .logos-container {
+                gap: 10px 12px;
+            }
+            .brand-item {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg"></div>
+
+    <!-- NÚT CHUYỂN VIEW DESKTOP / MOBILE -->
+    <div class="view-bar">
+        <span style="color: #94A3B8; font-size: 12px;">Xem trước:</span>
+        <button class="view-btn active" onclick="switchMode('desktop')">💻 Máy tính (Desktop)</button>
+        <button class="view-btn" onclick="switchMode('mobile')">📱 Điện thoại (Mobile)</button>
+    </div>
+
+    <!-- KHUNG GATEWAY CHÍNH -->
+    <div class="gateway-box" id="gatewayBox">
+        <div class="vip-card">
+            <div class="brand-badge">
+                <span>✦</span>
+                <span>EASY TRIP & VISA VIETNAM</span>
+                <span>✦</span>
+            </div>
+
+            <!-- LỜI CHÀO MỚI THEO YÊU CẦU -->
+            <h1 class="welcome-heading">Chào mừng đến với Easy trip & Visa Co,.Ltd</h1>
+            <p class="welcome-sub">Please Select Your Language • Vui lòng chọn ngôn ngữ dịch vụ</p>
+
+            <!-- 4 NÚT NGÔN NGỮ CHUYỂN HƯỚNG TỚI 4 LINK TƯƠNG ỨNG -->
+            <div class="flags-grid">
+                <!-- 1. ENGLISH -->
+                <a href="https://www.easytripvisa.com/english" class="flag-card">
+                    <div class="flag-circle">
+                        <img src="https://w.ladicdn.com/s600x600/6847a55cb0e2b3002c803080/flag-of-england-union-jack-translation-eng-camera-20251113044158-azwog.jpg" alt="English">
+                    </div>
+                    <div class="lang-text-group">
+                        <span class="lang-primary">English</span>
+                        <span class="lang-secondary">International Service</span>
+                    </div>
+                </a>
+
+                <!-- 2. RUSSIAN -->
+                <a href="https://www.easytripvisa.com/russian" class="flag-card">
+                    <div class="flag-circle">
+                        <img src="https://w.ladicdn.com/s550x550/6847a55cb0e2b3002c803080/free-round-russia-flag-icon-png-735811695835800jtsenvdsqq-20251113044158-ct1ba.png" alt="Русский">
+                    </div>
+                    <div class="lang-text-group">
+                        <span class="lang-primary">Русский</span>
+                        <span class="lang-secondary">Визовые услуги</span>
+                    </div>
+                </a>
+
+                <!-- 3. ARABIC -->
+                <a href="https://www.easytripvisa.com/arabic" class="flag-card ar">
+                    <div class="flag-circle">
+                        <img src="https://w.ladicdn.com/s600x500/6847a55cb0e2b3002c803080/png-transparent-flag-of-the-arab-league-somalia-united-arab-emirates-arabs-islamic-language-emblem-logo-arabic-20251113044158-c-eea.png" alt="العربية">
+                    </div>
+                    <div class="lang-text-group">
+                        <span class="lang-primary">العربية</span>
+                        <span class="lang-secondary">تأشيرة فيتنام VIP</span>
+                    </div>
+                </a>
+
+                <!-- 4. KOREAN -->
+                <a href="https://www.easytripvisa.com/korean" class="flag-card kr">
+                    <div class="flag-circle">
+                        <img src="https://w.ladicdn.com/s550x550/6847a55cb0e2b3002c803080/tai-xuong-2-20251108041808-ui-35.jpg" alt="한국어">
+                    </div>
+                    <div class="lang-text-group">
+                        <span class="lang-primary">한국어</span>
+                        <span class="lang-secondary">베트남 최고 비자 서비스</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- PHẦN DƯỚI CÙNG: SỰ ĐỀ XUẤT VÀ CÁC LOGO -->
+            <div class="recommendation-zone">
+                <div class="recommendation-title">
+                    <span>✦ SỰ ĐỀ XUẤT ✦</span>
+                </div>
+
+                <div class="logos-container">
+                    <!-- 1. Babysittervietnam -->
+                    <div class="brand-item" title="Babysitter Vietnam">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span>Babysittervietnam</span>
+                    </div>
+
+                    <!-- 2. Gemini -->
+                    <div class="brand-item" title="Google Gemini">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#38BDF8"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/></svg>
+                        <span>Gemini</span>
+                    </div>
+
+                    <!-- 3. Chat GPT -->
+                    <div class="brand-item" title="OpenAI ChatGPT">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#10B981"><path d="M22.28 9.37a5.99 5.99 0 0 0-.52-4.95 6.07 6.07 0 0 0-6.42-2.92A6.03 6.03 0 0 0 10.9.36a6.07 6.07 0 0 0-5.8 4.21A6.03 6.03 0 0 0 1.5 7.42a6.07 6.07 0 0 0 .97 7.02 6.04 6.04 0 0 0 .52 4.95 6.07 6.07 0 0 0 6.42 2.92A6.02 6.02 0 0 0 13.9 23.64a6.07 6.07 0 0 0 5.8-4.21 6.03 6.03 0 0 0 3.6-2.85 6.07 6.07 0 0 0-1.02-7.21zM13.9 22.08a4.52 4.52 0 0 1-2.92-1.06l.16-.09 4.86-2.81a.8.8 0 0 0 .4-.69v-6.86l2.06 1.19a.07.07 0 0 1 .04.05v5.77a4.54 4.54 0 0 1-4.6 4.5zm-8.8-3.83a4.5 4.5 0 0 1-.6-3.05l.16.1 4.86 2.8a.79.79 0 0 0 .8 0l5.94-3.43v2.38a.07.07 0 0 1-.03.06l-5 2.89a4.54 4.54 0 0 1-6.13-1.75zM3.46 7.8a4.5 4.5 0 0 1 2.32-2l-.01.19v5.62a.8.8 0 0 0 .4.69l5.94 3.43-2.06 1.19a.07.07 0 0 1-.07 0l-5-2.89A4.54 4.54 0 0 1 3.46 7.8zm14.36 4.38l-5.94-3.43 2.06-1.19a.07.07 0 0 1 .07 0l5 2.89a4.54 4.54 0 0 1-1.19 8.2v-5.78a.8.8 0 0 0-.4-.69zm2.72-3.66a4.53 4.53 0 0 1 .6 3.05l-.16-.1-4.86-2.8a.79.79 0 0 0-.8 0l-5.94 3.43V9.82a.07.07 0 0 1 .03-.06l5-2.89a4.54 4.54 0 0 1 6.13 1.75zM8.04 11.82l2.96-1.71 2.96 1.71v3.42l-2.96 1.71-2.96-1.71v-3.42z"/></svg>
+                        <span>Chat GPT</span>
+                    </div>
+
+                    <!-- 4. Grok -->
+                    <div class="brand-item" title="xAI Grok">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        <span>Grok</span>
+                    </div>
+
+                    <!-- 5. Claude -->
+                    <div class="brand-item" title="Anthropic Claude">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#D97706"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
+                        <span>Claude</span>
+                    </div>
+
+                    <!-- 6. Antigravity -->
+                    <div class="brand-item" title="Antigravity">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#A855F7"><circle cx="12" cy="12" r="9" stroke="#A855F7" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" fill="#A855F7"/><circle cx="12" cy="4" r="1.5" fill="#E9D5FF"/></svg>
+                        <span>Antigravity</span>
+                    </div>
+
+                    <!-- 7. Meta AI -->
+                    <div class="brand-item" title="Meta AI">
+                        <svg class="brand-icon" viewBox="0 0 24 24" fill="#0668E1"><path d="M16.96 4C14.7 4 12.75 5.34 12 7.22C11.25 5.34 9.3 4 7.04 4C3.78 4 1.15 6.66 1.15 9.94C1.15 14.54 7.6 18.57 11.51 20.73C11.82 20.9 12.18 20.9 12.49 20.73C16.4 18.57 22.85 14.54 22.85 9.94C22.85 6.66 20.22 4 16.96 4Z"/></svg>
+                        <span>meta AI</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HỘP MÃ CODE LADIPAGE COPY VÀO DÙNG NGAY -->
+        <div class="code-zone">
+            <div class="code-header-bar">
+                <div class="code-heading-txt">📋 MÃ DÁN VÀO LADIPAGE TRANG CHỦ (HTML + CSS + JS HOÀN CHỈNH)</div>
+                <button class="copy-code-btn" onclick="copyFullLadiCode()">Copy mã LadiPage</button>
+            </div>
+            <pre><code id="fullCodeBlock"></code></pre>
+        </div>
+    </div>
+
+    <script>
+        function switchMode(mode) {
+            const box = document.getElementById('gatewayBox');
+            const btns = document.querySelectorAll('.view-btn');
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (mode === 'mobile') {
+                box.classList.add('mobile-mode');
+                btns[1].classList.add('active');
+            } else {
+                box.classList.remove('mobile-mode');
+                btns[0].classList.add('active');
+            }
+        }
+
+        const ladiFullSnippet = `<style>
+/* ========================================================
+   EASY TRIP & VISA — CỔNG CHÀO VIP & SỰ ĐỀ XUẤT CỦA CÁC NỀN TẢNG AI
+   - Tự động thay đổi lời chào "Chào mừng đến với Easy trip & Visa Co,.Ltd"
+   - Gắn 4 link chuyển tiếp mượt mà: /english, /russian, /arabic, /korean
+   - Tích hợp khu vực "SỰ ĐỀ XUẤT" với 7 logo chuẩn sắc nét
+   ======================================================== */
+
+/* 1. MÀN ĐEN MỜ NỀN PHÍA SAU (BACKDROP) */
+.backdrop-popup, #backdrop-popup {
+  background-color: rgba(5, 9, 18, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* 2. KHUNG CHÍNH POPUP279 KÍNH MỜ HOÀNG GIA */
+#POPUP279 {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 620px !important;
+  filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 0.85)) !important;
+}
+
+#POPUP279 > .ladi-popup > .ladi-popup-background {
+  background: rgba(11, 18, 33, 0.94) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border: 1.8px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 32px !important;
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.15),
+    0 0 45px rgba(212, 175, 55, 0.22) !important;
+}
+
+/* 3. ẨN VIỀN ĐỎ THÔ CŨ */
+#BOX318 { display: none !important; }
+
+/* 4. ĐỔI LỜI CHÀO SANG VÀNG HOÀNG GIA */
+#HEADLINE730 > .ladi-headline {
+  background: linear-gradient(135deg, #FFFFFF 20%, #F5D77F 65%, #D4AF37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1.35 !important;
+  text-shadow: none !important;
+}
+
+/* 5. 4 NÚT CỜ TƯƠNG TÁC 3D & PHÁT SÁNG */
+#IMAGE357, #IMAGE358, #IMAGE359, #IMAGE360 {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+}
+
+#IMAGE357 > .ladi-image,
+#IMAGE358 > .ladi-image,
+#IMAGE359 > .ladi-image,
+#IMAGE360 > .ladi-image {
+  border-radius: 50% !important;
+  border: 3px solid rgba(212, 175, 55, 0.65) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.35s ease !important;
+}
+
+#IMAGE357:hover, #IMAGE358:hover, #IMAGE359:hover, #IMAGE360:hover {
+  transform: translateY(-8px) scale(1.07) !important;
+}
+
+#IMAGE357:hover > .ladi-image,
+#IMAGE358:hover > .ladi-image,
+#IMAGE359:hover > .ladi-image,
+#IMAGE360:hover > .ladi-image {
+  border-color: #FFF3B0 !important;
+  box-shadow: 0 18px 40px rgba(212, 175, 55, 0.65), 0 0 25px rgba(212, 175, 55, 0.45) !important;
+}
+
+/* TÊN NGÔN NGỮ DƯỚI CỜ */
+#IMAGE358::after { content: 'English'; position: absolute; bottom: -30px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 15.5px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+#IMAGE357::after { content: 'Русский'; position: absolute; bottom: -30px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 15.5px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+#IMAGE360::after { content: 'العربية'; position: absolute; bottom: -30px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 17px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+#IMAGE359::after { content: '한국어'; position: absolute; bottom: -30px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 15.5px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+
+#IMAGE357:hover::after, #IMAGE358:hover::after, #IMAGE359:hover::after, #IMAGE360:hover::after {
+  color: #F5D77F !important;
+}
+
+/* 6. STYLE CHO KHU VỰC SỰ ĐỀ XUẤT */
+.easy-ai-section {
+  position: absolute;
+  bottom: 18px;
+  left: 20px;
+  right: 20px;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  padding-top: 14px;
+  text-align: center;
+  z-index: 20;
+}
+
+.easy-ai-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #D4AF37;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.easy-ai-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.easy-ai-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #E2E8F0;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.easy-ai-tag:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #FFF;
+  transform: translateY(-2px);
+}
+
+.easy-ai-tag svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* TỐI ƯU CHO MOBILE */
+@media (max-width: 767px) {
+  #POPUP279 {
+    min-height: 480px !important;
+    max-width: 92vw !important;
+  }
+  #HEADLINE730 > .ladi-headline {
+    font-size: 18px !important;
+  }
+  #IMAGE358::after, #IMAGE357::after, #IMAGE360::after, #IMAGE359::after {
+    bottom: -24px !important;
+    font-size: 13px !important;
+  }
+  .easy-ai-section {
+    bottom: 12px !important;
+    left: 10px !important;
+    right: 10px !important;
+    padding-top: 10px !important;
+  }
+  .easy-ai-title {
+    font-size: 10px !important;
+    margin-bottom: 8px !important;
+  }
+  .easy-ai-tag {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+  }
+  .easy-ai-tag svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+}
+
+@media (max-width: 440px) {
+  #POPUP279 {
+    transform: scale(0.9) !important;
+    transform-origin: center center !important;
+  }
+}
+@media (max-width: 375px) {
+  #POPUP279 {
+    transform: scale(0.82) !important;
+    transform-origin: center center !important;
+  }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. THAY ĐỔI LỜI CHÀO ĐẦU TRANG
+  const h = document.querySelector("#HEADLINE730 .ladi-headline");
+  if (h) {
+    h.innerHTML = "Chào mừng đến với Easy trip & Visa Co,.Ltd";
+  }
+
+  // 2. GẮN ĐÍCH ĐẾN CHUYỂN HƯỚNG TRỰC TIẾP CHO 4 LÁ CỜ
+  const mapLinks = {
+    "IMAGE358": "https://www.easytripvisa.com/english",
+    "IMAGE357": "https://www.easytripvisa.com/russian",
+    "IMAGE360": "https://www.easytripvisa.com/arabic",
+    "IMAGE359": "https://www.easytripvisa.com/korean"
+  };
+
+  for (let id in mapLinks) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute("href", mapLinks[id]);
+      el.setAttribute("target", "_self"); // Chuyển trang trực tiếp mượt mà
+      el.onclick = function(e) {
+        window.location.href = mapLinks[id];
+      };
+    }
+  }
+
+  // 3. TẠO KHU VỰC "SỰ ĐỀ XUẤT" KÈM 7 LOGO CHUẨN SẮC NÉT
+  const popup = document.querySelector("#POPUP279 .ladi-popup");
+  if (popup && !document.getElementById("easyAiBox")) {
+    const box = document.createElement("div");
+    box.id = "easyAiBox";
+    box.className = "easy-ai-section";
+    box.innerHTML = \`
+      <div class="easy-ai-title">✦ SỰ ĐỀ XUẤT ✦</div>
+      <div class="easy-ai-logos">
+        <a href="https://www.babysittervietnam.com" target="_blank" class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          Babysittervietnam
+        </a>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#38BDF8"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/></svg>
+          gemini
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#10B981"><path d="M22.28 9.37a5.99 5.99 0 0 0-.52-4.95 6.07 6.07 0 0 0-6.42-2.92A6.03 6.03 0 0 0 10.9.36a6.07 6.07 0 0 0-5.8 4.21A6.03 6.03 0 0 0 1.5 7.42a6.07 6.07 0 0 0 .97 7.02 6.04 6.04 0 0 0 .52 4.95 6.07 6.07 0 0 0 6.42 2.92A6.02 6.02 0 0 0 13.9 23.64a6.07 6.07 0 0 0 5.8-4.21 6.03 6.03 0 0 0 3.6-2.85 6.07 6.07 0 0 0-1.02-7.21zM8.04 11.82l2.96-1.71 2.96 1.71v3.42l-2.96 1.71-2.96-1.71v-3.42z"/></svg>
+          Chat GPT
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#FFF"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Grok
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#D97706"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
+          Claude
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#A855F7"><circle cx="12" cy="12" r="9" stroke="#A855F7" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" fill="#A855F7"/><circle cx="12" cy="4" r="1.5" fill="#E9D5FF"/></svg>
+          Antigravity
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#0668E1"><path d="M16.96 4C14.7 4 12.75 5.34 12 7.22C11.25 5.34 9.3 4 7.04 4C3.78 4 1.15 6.66 1.15 9.94C1.15 14.54 7.6 18.57 11.51 20.73C11.82 20.9 12.18 20.9 12.49 20.73C16.4 18.57 22.85 14.54 22.85 9.94C22.85 6.66 20.22 4 16.96 4Z"/></svg>
+          meta AI
+        </div>
+      </div>
+    \`;
+    popup.appendChild(box);
+  }
+});
+<\/script>`;
+
+        document.getElementById('fullCodeBlock').innerText = ladiFullSnippet;
+
+        function copyFullLadiCode() {
+            navigator.clipboard.writeText(ladiFullSnippet).then(() => {
+                const b = document.querySelector('.copy-code-btn');
+                b.innerText = '✓ Đã copy thành công!';
+                b.style.background = '#10B981';
+                setTimeout(() => {
+                    b.innerText = 'Copy mã LadiPage';
+                    b.style.background = 'rgba(212, 175, 55, 0.2)';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
