@@ -1,0 +1,327 @@
+<style>
+/* ========================================================
+   EASY TRIP & VISA — POPUP VUÔNG NGUYÊN KHỐI (KHÔNG CUỘN / TRƯỢT)
+   ======================================================== */
+
+/* 1. MÀN ĐEN MỜ NỀN PHÍA SAU */
+.backdrop-popup, #backdrop-popup {
+  background-color: rgba(5, 9, 18, 0.88) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* 2. KHUNG POPUP GỌN GÀNG TRONG 1 KHỐI Ô VUÔNG - TUYỆT ĐỐI KHÔNG BỊ TRƯỢT */
+#POPUP279 {
+  width: 560px !important;
+  height: 570px !important;
+  max-height: 94vh !important;
+  overflow: hidden !important; /* Cố định 1 khung vuông, chặn hoàn toàn thanh cuộn trượt */
+  filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 0.9)) !important;
+  border-radius: 26px !important;
+}
+
+#POPUP279 > .ladi-popup {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+#POPUP279 > .ladi-popup > .ladi-popup-background {
+  background: rgba(11, 18, 33, 0.95) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border: 1.8px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 26px !important;
+  box-shadow: 
+    0 0 45px rgba(212, 175, 55, 0.22),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Ẩn hộp viền đỏ cũ */
+#BOX318 {
+  display: none !important;
+}
+
+/* 3. TIÊU ĐỀ NỔI BẬT: CHỮ TRẮNG VÀ VÀNG KIM SÁNG RỰC RỠ */
+#HEADLINE730 {
+  position: absolute !important;
+  top: 18px !important;
+  left: 15px !important;
+  width: 530px !important;
+  height: auto !important;
+  text-align: center !important;
+}
+
+#HEADLINE730 > .ladi-headline {
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1.35 !important;
+  text-shadow: 0 0 16px rgba(255, 230, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.95) !important;
+}
+
+/* 4. ĐỊNH VỊ 4 LÁ CỜ GỌN GÀNG VÀO TRUNG TÂM KHUNG Ô VUÔNG */
+#IMAGE357, #IMAGE358, #IMAGE359, #IMAGE360 {
+  width: 125px !important;
+  height: 125px !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: absolute !important;
+}
+
+/* HÀNG 1: English & Russian */
+#IMAGE358 { top: 78px !important; left: 110px !important; }
+#IMAGE357 { top: 78px !important; left: 325px !important; }
+
+/* HÀNG 2: Arabic & Korean */
+#IMAGE360 { top: 250px !important; left: 110px !important; }
+#IMAGE359 { top: 250px !important; left: 325px !important; }
+
+#IMAGE357 .ladi-image, #IMAGE358 .ladi-image, 
+#IMAGE359 .ladi-image, #IMAGE360 .ladi-image {
+  border-radius: 50% !important;
+  border: 2.5px solid rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6), 0 0 18px rgba(212, 175, 55, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+
+#IMAGE357:hover, #IMAGE358:hover, #IMAGE359:hover, #IMAGE360:hover {
+  transform: translateY(-5px) scale(1.06) !important;
+}
+
+#IMAGE357:hover .ladi-image, #IMAGE358:hover .ladi-image, 
+#IMAGE359:hover .ladi-image, #IMAGE360:hover .ladi-image {
+  border-color: #FFE600 !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.8), 0 0 28px rgba(255, 230, 0, 0.6) !important;
+}
+
+/* NHÃN NGÔN NGỮ DƯỚI LÁ CỜ */
+#IMAGE358::after { content: 'English'; }
+#IMAGE357::after { content: 'Русский'; }
+#IMAGE360::after { content: 'العربية'; }
+#IMAGE359::after { content: '한국어'; }
+
+#IMAGE357::after, #IMAGE358::after, #IMAGE359::after, #IMAGE360::after {
+  position: absolute;
+  bottom: -26px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #FFFFFF;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  transition: color 0.25s;
+}
+
+#IMAGE357:hover::after, #IMAGE358:hover::after, 
+#IMAGE359:hover::after, #IMAGE360:hover::after {
+  color: #FFE600 !important;
+}
+
+/* 5. PHẦN ĐỀ XUẤT NẰM GỌN Ở ĐÁY KHUNG VUÔNG (KHÔNG TRÀN, KHÔNG TRƯỢT) */
+.easy-ai-section {
+  position: absolute !important;
+  top: 425px !important;
+  left: 15px !important;
+  width: 530px !important;
+  padding-top: 10px !important;
+  border-top: 1px dashed rgba(212, 175, 55, 0.3) !important;
+  text-align: center !important;
+  z-index: 50 !important;
+}
+
+.easy-ai-title {
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 2px !important;
+  color: #FFD700 !important;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 8px !important;
+}
+
+.easy-ai-logos {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px 10px !important;
+}
+
+/* TẤT CẢ CHỮ ĐỀU ĐỒNG BỘ MÀU TRẮNG SÁNG THEO YÊU CẦU */
+.easy-ai-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #FFFFFF !important; /* Chữ màu trắng đồng bộ */
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.easy-ai-tag:hover {
+  background: rgba(212, 175, 55, 0.2) !important;
+  border-color: #FFD700 !important;
+  color: #FFFFFF !important;
+  transform: translateY(-2px) !important;
+}
+
+.easy-ai-tag svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+.easy-ai-tag img {
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50% !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+}
+
+/* 6. RESPONSIVE HOÀN HẢO CHO MÀN HÌNH ĐIỆN THOẠI MOBILE (KHÔNG TRƯỢT) */
+@media (max-width: 600px) {
+  #POPUP279 {
+    width: 360px !important;
+    height: 520px !important;
+    border-radius: 22px !important;
+  }
+  #HEADLINE730 {
+    top: 14px !important;
+    left: 10px !important;
+    width: 340px !important;
+  }
+  #HEADLINE730 > .ladi-headline {
+    font-size: 15px !important;
+  }
+  #IMAGE357, #IMAGE358, #IMAGE359, #IMAGE360 {
+    width: 90px !important;
+    height: 90px !important;
+  }
+  #IMAGE358 { top: 68px !important; left: 55px !important; }
+  #IMAGE357 { top: 68px !important; left: 215px !important; }
+  #IMAGE360 { top: 200px !important; left: 55px !important; }
+  #IMAGE359 { top: 200px !important; left: 215px !important; }
+
+  #IMAGE357::after, #IMAGE358::after, #IMAGE359::after, #IMAGE360::after {
+    font-size: 13px !important;
+    bottom: -22px !important;
+  }
+  .easy-ai-section {
+    top: 340px !important;
+    left: 10px !important;
+    width: 340px !important;
+    padding-top: 8px !important;
+  }
+  .easy-ai-title {
+    font-size: 10px !important;
+    margin-bottom: 6px !important;
+  }
+  .easy-ai-tag {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+  }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. TỰ ĐỘNG BẬT POPUP NGAY KHI VÀO TRANG CHỦ
+  setTimeout(function() {
+    try {
+      if (typeof window.ladi === "function") {
+        window.ladi('POPUP279').show();
+      }
+    } catch(e) {}
+    var sec = document.getElementById("SECTION_POPUP");
+    if (sec) sec.style.display = "block";
+    var pop = document.getElementById("POPUP279");
+    if (pop) {
+      pop.style.display = "block";
+      pop.style.visibility = "visible";
+    }
+  }, 250);
+
+  // 2. CẬP NHẬT TIÊU ĐỀ NỔI BẬT: EASY TRIP & VISA TỎA SÁNG VÀNG KIM
+  const h = document.querySelector("#HEADLINE730 .ladi-headline");
+  if (h) {
+    h.innerHTML = 'Welcome to <span style="color:#FFE600; text-shadow:0 0 16px rgba(255,230,0,0.85); font-weight:900;">Easy Trip & Visa</span> Co., Ltd.';
+  }
+
+  // 3. GẮN 4 LINK ĐIỀU HƯỚNG CHO 4 LÁ CỜ
+  const mapLinks = {
+    "IMAGE358": "https://www.easytripvisa.com/english",
+    "IMAGE357": "https://www.easytripvisa.com/russian",
+    "IMAGE360": "https://www.easytripvisa.com/arabic",
+    "IMAGE359": "https://www.easytripvisa.com/korean"
+  };
+
+  for (let id in mapLinks) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute("href", mapLinks[id]);
+      el.setAttribute("target", "_self");
+      el.onclick = function(e) {
+        window.location.href = mapLinks[id];
+      };
+    }
+  }
+
+  // 4. CHÈN 7 LOGO (LOGO BABYSITTER TỰ NHẬP CHUẨN + CHỮ MÀU TRẮNG ĐỒNG BỘ)
+  const popup = document.querySelector("#POPUP279 .ladi-popup");
+  if (popup && !document.getElementById("easyAiBox")) {
+    const box = document.createElement("div");
+    box.id = "easyAiBox";
+    box.className = "easy-ai-section";
+    box.innerHTML = `
+      <div class="easy-ai-title">✦ RECOMMENDATIONS ✦</div>
+      <div class="easy-ai-logos">
+        <a href="https://www.babysittervietnam.com" target="_blank" class="easy-ai-tag">
+          <img src="data:image/png;base64,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" alt="Babysittervietnam" />
+          <span>Babysittervietnam</span>
+        </a>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#38BDF8"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/></svg>
+          <span>gemini</span>
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#10B981"><path d="M22.28 9.37a5.99 5.99 0 0 0-.52-4.95 6.07 6.07 0 0 0-6.42-2.92A6.03 6.03 0 0 0 10.9.36a6.07 6.07 0 0 0-5.8 4.21A6.03 6.03 0 0 0 1.5 7.42a6.07 6.07 0 0 0 .97 7.02 6.04 6.04 0 0 0 .52 4.95 6.07 6.07 0 0 0 6.42 2.92A6.02 6.02 0 0 0 13.9 23.64a6.07 6.07 0 0 0 5.8-4.21 6.03 6.03 0 0 0 3.6-2.85 6.07 6.07 0 0 0-1.02-7.21zM8.04 11.82l2.96-1.71 2.96 1.71v3.42l-2.96 1.71-2.96-1.71v-3.42z"/></svg>
+          <span>Chat GPT</span>
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#FFFFFF"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span>Grok</span>
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#D97706"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
+          <span>Claude</span>
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#A855F7"><circle cx="12" cy="12" r="9" stroke="#A855F7" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" fill="#A855F7"/><circle cx="12" cy="4" r="1.5" fill="#E9D5FF"/></svg>
+          <span>Antigravity</span>
+        </div>
+        <div class="easy-ai-tag">
+          <svg viewBox="0 0 24 24" fill="#0668E1"><path d="M16.96 4C14.7 4 12.75 5.34 12 7.22C11.25 5.34 9.3 4 7.04 4C3.78 4 1.15 6.66 1.15 9.94C1.15 14.54 7.6 18.57 11.51 20.73C11.82 20.9 12.18 20.9 12.49 20.73C16.4 18.57 22.85 14.54 22.85 9.94C22.85 6.66 20.22 4 16.96 4Z"/></svg>
+          <span>meta AI</span>
+        </div>
+      </div>
+    `;
+    popup.appendChild(box);
+  }
+});
+</script>
