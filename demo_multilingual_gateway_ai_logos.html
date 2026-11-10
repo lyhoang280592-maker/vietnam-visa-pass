@@ -743,6 +743,22 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  // 0. CƯỠNG BỨC BẬT POPUP TỰ ĐỘNG KHI TẢI TRANG (NẾU LADIPAGE CHƯA BẬT)
+  setTimeout(function() {
+    try {
+      if (typeof window.ladi === "function") {
+        window.ladi('POPUP279').show();
+      }
+    } catch(e) {}
+    var sec = document.getElementById("SECTION_POPUP");
+    if (sec) sec.style.display = "block";
+    var pop = document.getElementById("POPUP279");
+    if (pop) {
+      pop.style.display = "block";
+      pop.style.visibility = "visible";
+    }
+  }, 300);
+
   // 1. THAY ĐỔI LỜI CHÀO ĐẦU TRANG (TIẾNG ANH CHUẨN QUỐC TẾ THEO YÊU CẦU)
   const h = document.querySelector("#HEADLINE730 .ladi-headline");
   if (h) {
