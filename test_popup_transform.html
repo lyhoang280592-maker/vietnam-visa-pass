@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test LadiPage Exact Popup Transformation</title>
+    <style>
+        /* CSS MÔ PHỎNG NGUYÊN BẢN CỦA LADIPAGE */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        .backdrop-popup {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); z-index: 100;
+        }
+
+        #SECTION_POPUP { position: relative; z-index: 101; }
+        .ladi-container { position: relative; width: 960px; margin: 0 auto; }
+
+        #POPUP279 {
+            position: relative; width: 621.6px; height: 592px; margin: auto;
+        }
+        .ladi-popup { width: 100%; height: 100%; position: relative; }
+        .ladi-popup-background { position: absolute; inset: 0; background-color: rgba(152, 188, 236, 0.26); }
+
+        #HEADLINE730 { position: absolute; width: 530px; top: 17px; left: 45.8px; }
+        #HEADLINE730 > .ladi-headline { font-size: 30px; font-weight: bold; text-align: center; color: #fff; }
+
+        #BOX318 { position: absolute; width: 460px; height: 63px; top: 9.5px; left: 80.8px; border: 1px solid rgba(244,78,78,0.5); }
+
+        .ladi-element { position: absolute; }
+        .ladi-image { width: 100%; height: 100%; position: relative; border-radius: 50%; overflow: hidden; }
+        .ladi-image-background { width: 100%; height: 100%; background-size: cover; background-position: center; }
+
+        #IMAGE358 { width: 184.5px; height: 184.5px; top: 110.5px; left: 80.8px; }
+        #IMAGE357 { width: 184.5px; height: 184.5px; top: 110.5px; left: 366.5px; }
+        #IMAGE360 { width: 183.7px; height: 184.5px; top: 361px; left: 80.8px; }
+        #IMAGE359 { width: 184.5px; height: 184.5px; top: 361px; left: 366.5px; }
+
+        /* ========================================================
+           ĐOẠN MÃ NÂNG CẤP THẦN THÁNH CHO LADIPAGE POPUP
+           ======================================================== */
+
+        /* 1. MÀN ĐEN MỜ PHÍA SAU CỰC KỲ SANG TRỌNG */
+        .backdrop-popup, #backdrop-popup {
+            background-color: rgba(5, 9, 18, 0.8) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+        }
+
+        /* 2. HỘP POPUP CHÍNH THÀNH KÍNH MỜ GLASSMORPISHM CAO CẤP */
+        #POPUP279 {
+            overflow: visible !important;
+            filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.8)) !important;
+        }
+
+        #POPUP279 > .ladi-popup > .ladi-popup-background {
+            background: rgba(11, 18, 33, 0.92) !important;
+            backdrop-filter: blur(28px) !important;
+            -webkit-backdrop-filter: blur(28px) !important;
+            border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+            border-radius: 32px !important;
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.15),
+                0 0 35px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        /* Ẩn viền đỏ thô cũ */
+        #BOX318 {
+            display: none !important;
+        }
+
+        /* 3. TIÊU ĐỀ SELECT YOUR LANGUAGE VƯƠNG GIẢ */
+        #HEADLINE730 > .ladi-headline {
+            background: linear-gradient(135deg, #FFFFFF 20%, #F5D77F 60%, #D4AF37 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-size: 28px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.5px !important;
+            text-shadow: none !important;
+            margin-top: 10px !important;
+        }
+
+        /* 4. TẠO CARD TƯƠNG TÁC CHO 4 NÚT CỜ */
+        #IMAGE357, #IMAGE358, #IMAGE359, #IMAGE360 {
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            cursor: pointer !important;
+        }
+
+        #IMAGE357 > .ladi-image,
+        #IMAGE358 > .ladi-image,
+        #IMAGE359 > .ladi-image,
+        #IMAGE360 > .ladi-image {
+            border-radius: 50% !important;
+            border: 3px solid rgba(212, 175, 55, 0.6) !important;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5) !important;
+            transition: all 0.35s ease !important;
+        }
+
+        /* HIỆU ỨNG HOVER NỔI BẬT LÊN */
+        #IMAGE357:hover, #IMAGE358:hover, #IMAGE359:hover, #IMAGE360:hover {
+            transform: translateY(-8px) scale(1.06) !important;
+        }
+
+        #IMAGE357:hover > .ladi-image,
+        #IMAGE358:hover > .ladi-image,
+        #IMAGE359:hover > .ladi-image,
+        #IMAGE360:hover > .ladi-image {
+            border-color: #FFF3B0 !important;
+            box-shadow: 0 18px 40px rgba(212, 175, 55, 0.6), 0 0 25px rgba(212, 175, 55, 0.4) !important;
+        }
+
+        /* 5. THÊM TÊN NGÔN NGỮ RÕ RÀNG DƯỚI TỪNG CỜ */
+        #IMAGE358::after {
+            content: 'English';
+            position: absolute;
+            bottom: -32px; left: 0; width: 100%;
+            text-align: center;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            transition: color 0.25s;
+        }
+        #IMAGE357::after {
+            content: 'Русский';
+            position: absolute;
+            bottom: -32px; left: 0; width: 100%;
+            text-align: center;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            transition: color 0.25s;
+        }
+        #IMAGE360::after {
+            content: 'العربية';
+            position: absolute;
+            bottom: -32px; left: 0; width: 100%;
+            text-align: center;
+            color: #FFFFFF;
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            transition: color 0.25s;
+        }
+        #IMAGE359::after {
+            content: '한국어';
+            position: absolute;
+            bottom: -32px; left: 0; width: 100%;
+            text-align: center;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            transition: color 0.25s;
+        }
+
+        #IMAGE357:hover::after, #IMAGE358:hover::after, #IMAGE359:hover::after, #IMAGE360:hover::after {
+            color: #F5D77F !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="backdrop-popup"></div>
+    <div id="SECTION_POPUP">
+        <div class="ladi-container">
+            <div id="POPUP279">
+                <div class="ladi-popup">
+                    <div class="ladi-popup-background"></div>
+                    <div id="HEADLINE730"><h2 class="ladi-headline">Please Select Your Language</h2></div>
+                    <div id="BOX318"></div>
+                    <!-- 1. English -->
+                    <a href="https://www.easytripvisa.com/english" id="IMAGE358" class="ladi-element">
+                        <div class="ladi-image">
+                            <div class="ladi-image-background" style="background-image: url('https://w.ladicdn.com/s600x600/6847a55cb0e2b3002c803080/flag-of-england-union-jack-translation-eng-camera-20251113044158-azwog.jpg');"></div>
+                        </div>
+                    </a>
+                    <!-- 2. Russian -->
+                    <a href="https://www.easytripvisa.com/russian" id="IMAGE357" class="ladi-element">
+                        <div class="ladi-image">
+                            <div class="ladi-image-background" style="background-image: url('https://w.ladicdn.com/s550x550/6847a55cb0e2b3002c803080/free-round-russia-flag-icon-png-735811695835800jtsenvdsqq-20251113044158-ct1ba.png');"></div>
+                        </div>
+                    </a>
+                    <!-- 3. Arabic -->
+                    <a href="https://www.easytripvisa.com/arabic" id="IMAGE360" class="ladi-element">
+                        <div class="ladi-image">
+                            <div class="ladi-image-background" style="background-image: url('https://w.ladicdn.com/s600x500/6847a55cb0e2b3002c803080/png-transparent-flag-of-the-arab-league-somalia-united-arab-emirates-arabs-islamic-language-emblem-logo-arabic-20251113044158-c-eea.png');"></div>
+                        </div>
+                    </a>
+                    <!-- 4. Korean -->
+                    <a href="https://www.easytripvisa.com/korean" id="IMAGE359" class="ladi-element">
+                        <div class="ladi-image">
+                            <div class="ladi-image-background" style="background-image: url('https://w.ladicdn.com/s550x550/6847a55cb0e2b3002c803080/tai-xuong-2-20251108041808-ui-35.jpg');"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
